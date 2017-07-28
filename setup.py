@@ -82,7 +82,8 @@ except Exception as err:
 
 try:
     print(gtext("Creating Fortran extension module: _fm3d"))
-    cmd = ["f2py", "-c", "-m", "_fm3d", "%s/f90wrap_toplevel.f90" % src_dir]
+    cmd = ["f2py", "-c", "-m", "_fm3d", "-I%s" % build_dir]
+    cmd += glob.glob("%s/f90wrap_*.f90" % src_dir)
     cmd += ["%s/%s.o" % (build_dir, src) for src in srcs]
     print("\t%s" % gtext(" ".join(cmd)))
     subprocess.run(cmd)

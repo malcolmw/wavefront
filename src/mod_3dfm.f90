@@ -891,3 +891,7 @@ module mod_3dfm_nointerfaces
   use global_variables
 
 end module mod_3dfm_nointerfaces
+
+subroutine f90wrap_abort
+  write(*,*)'ABORT'
+end subroutine f90wrap_abort

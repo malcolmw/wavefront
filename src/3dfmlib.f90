@@ -88,22 +88,29 @@ end subroutine initialize_velocity_grids
 
 !***********************************************************************************************
 ! reads the parameters of the propagation grid from file and initializes the grid
-subroutine initialize_propagation_grid
+subroutine initialize_propagation_grid(nr, nlat, nlong, dr0, dlat0, dlong0,&
+    & r0, lat0, long0)
 use mod_3dfm
 implicit none
 
 integer :: i,j,k
+integer, intent(in) :: nr,nlat,nlong
 real(kind=dp) :: deg_to_rad
-
-open(10,file='propgrid.in')
+real(kind=dp), intent(in) :: dr0,dlat0,dlong0,r0,lat0,long0
 
 allocate(pgrid)
 call pgrid_defaults(pgrid)
 
 ! grid parameters
-read(10,*) pgrid%nr,pgrid%nlat,pgrid%nlong
-read(10,*) pgrid%dr0,pgrid%dlat0,pgrid%dlong0
-read(10,*) pgrid%r0,pgrid%lat0,pgrid%long0
+pgrid%nr = nr
+pgrid%nlat = nlat
+pgrid%nlong = nlong
+pgrid%dr0 = dr0
+pgrid%dlat0 = dlat0
+pgrid%dlong0 = dlong0
+pgrid%r0 = r0
+pgrid%lat0 = lat0
+pgrid%long0 = long0
 
 deg_to_rad=acos(-1.0_dp)/180.0_dp
 
@@ -120,7 +127,8 @@ pgrid%rmax = pgrid%r0 + (pgrid%nr-1)*pgrid%dr0
 pgrid%latmax = pgrid%lat0 + (pgrid%nlat-1)*pgrid%dlat0
 pgrid%longmax = pgrid%long0 + (pgrid%nlong-1)*pgrid%dlong0
 
-read(10,*) refinement_factor,ncell_to_be_refined
+refinement_factor = 5
+ncell_to_be_refined = 10
 
 ! initialize the grid
 
@@ -142,9 +150,6 @@ end do
 do i=1,pgrid%nlong
    pgrid%long(i)=pgrid%long0 + (i-1)*pgrid%dlong0
 end do
-
-
-close(10)
 
 
 allocate(pgrid%rnode_id(pgrid%nr,pgrid%nlat,pgrid%nlong))
