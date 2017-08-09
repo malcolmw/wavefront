@@ -996,8 +996,9 @@ subroutine interpolate_time_gradient(tf,r,lat,long,dtdr,dtdlat,dtdlong,verbose,o
 !  if (tf%id == 2) write(15,'(3i5,6f12.6)') ir,ilat,ilong,r,lat,long,dtdr,dtdlat,dtdlong
 
   if (sqrt(dtdr**2+dtdlat**2+dtdlong**2) < 0.01_dp) then
-     print *
+     print *,r,lat,long
      print *,'----- WARNING -------'
+     print *
      print *,'an interpolated time gradient was unphysically small '
      print *,'this occurred for ray',raysec%ray%raypath_id,' from source',raysec%source%id
      print *,'this sometimes happens when the specified source/path/receiver combination'

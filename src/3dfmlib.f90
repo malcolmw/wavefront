@@ -3,24 +3,27 @@
 ! fields from which the values on the propagation grid are to be interpolated
 ! from file into the appropriate structures
 
-subroutine initialize_velocity_grids
+subroutine initialize_velocity_grids(vgrids, ngrids, ntypes, nr, nlambda, nphi,&
+    &r0, lambda0, phi0, dr, dlambda, dphi)
 use mod_3dfm
 implicit none
 
-integer :: n,m,i,j,k
-
-open(10,file='vgrids.in')
+integer             :: n,m,i,j,k
+integer, intent(in) :: ngrids, ntypes, nr, nlambda, nphi
+real, intent(in)    :: vgrids(ngrids, ntypes, nr, nlambda, nphi)
+real, intent(in)    :: r0, lambda0, phi0, dr, dlambda, dphi
 
 ! read the velocity mode from the file
 
 ! read the number of regions in the input velocity structure
-read (10,*) n_vgrids,n_vtypes
+n_vgrids = ngrids
+n_vtypes = ntypes
 
 ! allocate space for these regions
 allocate(vgrid(n_vgrids,n_vtypes))
 do m=1,n_vtypes
-   do n=1,n_vgrids 
-      call vgrid_defaults(vgrid(n,m)) 
+   do n=1,n_vgrids
+      call vgrid_defaults(vgrid(n,m))
    end do
 end do
 ! read the grid properties and velocity values to be interpolated for each region
@@ -30,10 +33,15 @@ do m=1,n_vtypes
    do n=1,n_vgrids
 
       ! grid parameters
-      read(10,*) vgrid(n,m)%nr,vgrid(n,m)%nlat,vgrid(n,m)%nlong
-      read(10,*) vgrid(n,m)%dr0,vgrid(n,m)%dlat0,vgrid(n,m)%dlong0
-      read(10,*) vgrid(n,m)%r0,vgrid(n,m)%lat0,vgrid(n,m)%long0
-
+      vgrid(n,m)%nr = nr
+      vgrid(n,m)%nlat = nlambda
+      vgrid(n,m)%nlong = nphi
+      vgrid(n,m)%dr0 = dr
+      vgrid(n,m)%dlat0 = dlambda
+      vgrid(n,m)%dlong0 = dphi
+      vgrid(n,m)%r0 = r0
+      vgrid(n,m)%lat0 = lambda0
+      vgrid(n,m)%long0 = phi0
 
 ! initialize the grid
 
@@ -59,7 +67,13 @@ do m=1,n_vtypes
       do i=1,vgrid(n,m)%nr
          do j=1,vgrid(n,m)%nlat
             do k=1,vgrid(n,m)%nlong
-               read (10,*) vgrid(n,m)%velocity(i,j,k)
+               if (vgrids(n,m,i,j,k) > 20) then
+                  vgrid(n,m)%velocity(i,j,k) = 20
+               else if (vgrids(n,m,i,j,k) < 1) then
+                  vgrid(n,m)%velocity(i,j,k) = 1
+               else
+                  vgrid(n,m)%velocity(i,j,k) = vgrids(n,m,i,j,k)
+               endif
             end do
          end do
       end do
@@ -81,22 +95,20 @@ do m=1,n_vtypes
 
 end do  ! vtypes
 
-close(10)
-
 end subroutine initialize_velocity_grids
 
 
 !***********************************************************************************************
 ! reads the parameters of the propagation grid from file and initializes the grid
-subroutine initialize_propagation_grid(nr, nlat, nlong, dr0, dlat0, dlong0,&
-    & r0, lat0, long0)
+subroutine initialize_propagation_grid(nr, nlat, nlon, dr, dlat, dlon,&
+    & h0, lat0, lon0)
 use mod_3dfm
 implicit none
 
 integer :: i,j,k
-integer, intent(in) :: nr,nlat,nlong
+integer, intent(in) :: nr,nlat,nlon
 real(kind=dp) :: deg_to_rad
-real(kind=dp), intent(in) :: dr0,dlat0,dlong0,r0,lat0,long0
+real, intent(in) :: dr,dlat,dlon,h0,lat0,lon0
 
 allocate(pgrid)
 call pgrid_defaults(pgrid)
@@ -104,13 +116,20 @@ call pgrid_defaults(pgrid)
 ! grid parameters
 pgrid%nr = nr
 pgrid%nlat = nlat
-pgrid%nlong = nlong
-pgrid%dr0 = dr0
-pgrid%dlat0 = dlat0
-pgrid%dlong0 = dlong0
-pgrid%r0 = r0
+pgrid%nlong = nlon
+pgrid%dr0 = dr
+pgrid%dlat0 = dlat
+pgrid%dlong0 = dlon
+pgrid%r0 = h0
 pgrid%lat0 = lat0
-pgrid%long0 = long0
+pgrid%long0 = lon0
+
+!print *,'DEBUG:: initialize_propagation_grid(1.1):',pgrid%r0,&
+!  &(pgrid%nr-1)*pgrid%dr0+pgrid%r0,pgrid%nr,pgrid%dr0
+!print *,'DEBUG:: initialize_propgation_grid(1.2):',pgrid%lat0,&
+!  &(pgrid%nlat-1)*pgrid%dlat0+pgrid%lat0,pgrid%nlat,pgrid%dlat0
+!print *,'DEBUG:: initialize_propagation_grid(1.3):',pgrid%long0,&
+!  &(pgrid%nlong-1)*pgrid%dlong0+pgrid%long0,pgrid%nlong,pgrid%dlong0
 
 deg_to_rad=acos(-1.0_dp)/180.0_dp
 
@@ -166,6 +185,13 @@ end do
 
 pgrid%is_main_grid = .true.
 
+!print *,'DEBUG:: initialize_propagation_grid(2.1):',pgrid%r(1),&
+!  &pgrid%r(pgrid%nr),pgrid%nr,pgrid%dr0
+!print *,'DEBUG:: initialize_propagation_grid(2.2):',pgrid%lat(1),&
+!  &pgrid%lat(pgrid%nlat),pgrid%nlat,pgrid%dlat0
+!print *,'DEBUG:: initialize_propagation_grid(2.3):',pgrid%long(1),&
+!  &pgrid%long(pgrid%nlong),pgrid%nlong,pgrid%dlong0
+
 end subroutine initialize_propagation_grid
 
 
@@ -175,19 +201,17 @@ end subroutine initialize_propagation_grid
 ! from which the values on the propagation grid are to be interpolated
 ! from file into the appropriate structures
 
-subroutine initialize_interfaces
+subroutine initialize_interfaces(lambda0,phi0,nlambda,nphi,dlambda,dphi)
 use mod_3dfm
 implicit none
 
-integer :: n,i,j
-integer :: nlat,nlong
-real(kind=dp) :: dlat0,dlong0,lat0,long0,h,hb
-
-open(10,file='interfaces.in')
-
+integer             :: n,i,j
+integer, intent(in) :: nlambda,nphi
+real, intent(in)    :: lambda0,phi0,dlambda,dphi 
+real(kind=dp) :: h,hb
 
 ! read the number of interfaces
-read (10,*) n_interfaces
+n_interfaces = 2
 
 ! allocate space for these interfaces (and the associated intersections and regions for future use)
 allocate(intrface(n_interfaces))
@@ -195,21 +219,15 @@ do n=1,n_interfaces ; call interface_defaults(intrface(n)) ; intrface(n)%id=n ; 
 
 
 ! read the grid properties and radius values to be interpolated for the internal interfaces
-
 ! grid parameters
-   read(10,*) nlat,nlong
-   read(10,*) dlat0,dlong0
-   read(10,*) lat0,long0
-
-
 do n=1,n_interfaces
 
-   intrface(n)%nlat = nlat
-   intrface(n)%nlong = nlong
-   intrface(n)%dlat0 = dlat0
-   intrface(n)%dlong0 = dlong0
-   intrface(n)%lat0 = lat0
-   intrface(n)%long0 = long0
+   intrface(n)%lat0 = lambda0
+   intrface(n)%long0 = phi0
+   intrface(n)%nlat = nlambda
+   intrface(n)%nlong = nphi
+   intrface(n)%dlat0 = dlambda
+   intrface(n)%dlong0 = dphi
 
 
 ! initialize the grid
@@ -231,21 +249,18 @@ do n=1,n_interfaces
 
    do i=1,intrface(n)%nlat
       do j=1,intrface(n)%nlong
-         read (10,*) intrface(n)%r(i,j)
+        if (n == 1) then
+          intrface(n)%r(i,j) = pgrid%r(pgrid%nr) - pgrid%dr0 * 0.01
+        else
+          intrface(n)%r(i,j) = pgrid%r(1) + pgrid%dr0 * 0.01
+        end if
       end do
    end do
 
    intrface(n)%nnode=intrface(n)%nlat*intrface(n)%nlong
+   print *,intrface(n)%r(1,1)
 
 end do  ! loop over interfaces
-
-close(10)
-
-! check top and bottom interfaces are not outside the propagation grid
-
-     if (count(intrface(1)%r > pgrid%r(pgrid%nr)) > 0) stop ' ERROR: surface above propagation grid'
-     if (count(intrface(n_interfaces)%r < pgrid%r(1)) > 0) stop ' ERROR: bottom below propagation grid'
-
 
 ! correct for intersecting interfaces, higher takes priority
 
@@ -258,7 +273,7 @@ close(10)
 
            if (n < n_interfaces) then
 
-              hb=intrface(n_interfaces)%r(i,j) 
+              hb=intrface(n_interfaces)%r(i,j)
 
               if (intrface(n)%r(i,j) < hb) then
                  intrface(n)%r(i,j) = hb
@@ -283,6 +298,8 @@ close(10)
 
   end do
 
+  !print *,'DEBUG:: initialize_interfaces(3.1):',intrface(1)%r(1,1),pgrid%r(pgrid%nr)
+  !print *,'DEBUG:: initialize_interfaces(3.2):',intrface(2)%r(1,1),pgrid%r(1)
 
 end subroutine initialize_interfaces
 
@@ -731,7 +748,7 @@ do k=1,grid%nlong
             nextranodes(i,j,k+1)  =nextranodes(i,j,k+1)+1
             nextranodes(i,j+1,k)  =nextranodes(i,j+1,k)+1
             nextranodes(i,j,k)    =nextranodes(i,j,k)+1
-            
+
       ! then store the number of the new intersection node in the list of the affected grid cells
             extranodes(nextranodes(i+1,j+1,k+1),i+1,j+1,k+1) =nodecount
             extranodes(nextranodes(i+1,j,k+1)  ,i+1,j,k+1)   =nodecount
@@ -752,7 +769,7 @@ do k=1,grid%nlong
 
             if(diag) write(13,'(a8,4i5)') 'it=0',nodecount,ijk_isec(nodecount)%ir, &
                  ijk_isec(nodecount)%ilat,ijk_isec(nodecount)%ilong
-            
+
 
          else
 
@@ -778,7 +795,7 @@ do k=1,grid%nlong
                   nextranodes(i+1,j,k+1)  =nextranodes(i+1,j,k+1)+1
                   nextranodes(i+1,j+1,k)  =nextranodes(i+1,j+1,k)+1
                   nextranodes(i+1,j,k)    =nextranodes(i+1,j,k)+1
-                  
+
          ! then store the number of the new intersection node in the list of the affected grid cells
                   extranodes(nextranodes(i+1,j+1,k+1),i+1,j+1,k+1) =nodecount
                   extranodes(nextranodes(i+1,j,k+1)  ,i+1,j,k+1)   =nodecount
@@ -802,7 +819,7 @@ do k=1,grid%nlong
                if (sign(1.0_dp,rdiff(i,j,k))*rdiff(i,j+1,k) < -grid%tolerance) then  
 
              ! node between grid node and the next in lat
-             
+
                   nodecount=nodecount+1 
                   ijk_isec(nodecount)%ir=i ;ijk_isec(nodecount)%ilat=j 
                   ijk_isec(nodecount)%ilong=k ;type_isec(nodecount)=2
@@ -828,7 +845,7 @@ do k=1,grid%nlong
                if (sign(1.0_dp,rdiff(i,j,k))*rdiff(i,j,k+1) < -grid%tolerance) then  
 
                   ! node between grid node and the next in long
-                  
+
                   nodecount=nodecount+1 
                   ijk_isec(nodecount)%ir=i ;ijk_isec(nodecount)%ilat=j 
                   ijk_isec(nodecount)%ilong=k ;type_isec(nodecount)=3
@@ -858,7 +875,7 @@ print *,'intersection ',isec%id, ':',nodecount,' nodes found'
 
 if (nodecount == 0) then
    isec%nnode=nodecount
-!   print *,'no intersection points found,intersection',isec%id,' not created'
+   print *,'no intersection points found,intersection',isec%id,' not created'
    deallocate(rdiff,r_interface,ijk_isec,type_isec,extranodes,nextranodes)
    deallocate(isec%irg_abo,isec%irg_bel)
    return

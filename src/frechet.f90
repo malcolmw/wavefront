@@ -20,6 +20,9 @@ subroutine initialize_inversion(do_frechet_derivatives)
   n_inv_active= 0
   group = 0
 
+  do_frechet_derivatives = .false.
+  return
+
   open(1,file='frechet.in')
 
   read(1,*) i
