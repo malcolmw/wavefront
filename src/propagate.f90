@@ -67,10 +67,10 @@ velgrid => vgrid(reg%ivgrid,vtype)
 
 n_det_negative = 0
 
-!print *,'entering propagate'
-!print *,'region',reg%id,reg%ivgrid
-!print *,'top', reg%itop%id,reg%itop%iface_id
-!print *,'bot', reg%ibot%id,reg%ibot%iface_id
+!print *,'DEBUG:: entering propagate'
+!print *,'DEBUG:: region',reg%id,reg%ivgrid
+!print *,'DEBUG:: top', reg%itop%id,reg%itop%iface_id
+!print *,'DEBUG:: bot', reg%ibot%id,reg%ibot%iface_id
 
 if (reg%id == 99) then
    diat=.true.
@@ -186,7 +186,7 @@ do while (ntree > 0)
       endif
    end do   ! loop over neighbours of newalive
 
-   if (diag) print *
+   if (diag) print *,'DIAG'
 
 
 end do  ! main propagation loop
@@ -233,7 +233,7 @@ end subroutine propagate
 
    i1 = reg%node(centernode)%i1 ; i2 = reg%node(centernode)%i2 ; i3 = reg%node(centernode)%i3
 
-!   print *,'finding neighbours of',i1,i2,i3
+!   print *,'DEBUG:: finding neighbours of',i1,i2,i3
 
    if (i1 /= 0) then
       if (grid%fully_regular(i1,i2,i3)) then
@@ -1809,7 +1809,6 @@ subroutine regular_update2(unode,anode,n_anode)
   det= b*b - 4.0_dp*a*c
 
   if (det < 0.0_dp) then
-
 !     if ( 0.5_dp*sqrt(abs(det))/abs(a) < 0.05_dp) then 
      if ( 0.5_dp*sqrt(abs(det))/abs(a) < 1.0e20_dp) then 
 
@@ -2485,7 +2484,6 @@ grid => reg%grid
       nplus  = grid%rnode_id(i1,i2,min(grid%nlong,i3+1))
       dtdlong = (reg%arrivaltime(nplus)-reg%arrivaltime(nminus))/&
            (reg%r(centernode)*reg%coslat(centernode)*(reg%long(nplus)-reg%long(nminus)))
-
       return
 
    endif
