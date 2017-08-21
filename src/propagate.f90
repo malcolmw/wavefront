@@ -67,11 +67,6 @@ velgrid => vgrid(reg%ivgrid,vtype)
 
 n_det_negative = 0
 
-!print *,'DEBUG:: entering propagate'
-!print *,'DEBUG:: region',reg%id,reg%ivgrid
-!print *,'DEBUG:: top', reg%itop%id,reg%itop%iface_id
-!print *,'DEBUG:: bot', reg%ibot%id,reg%ibot%iface_id
-
 if (reg%id == 99) then
    diat=.true.
    testnode=pgrid%rnode_id(37,9,5)
@@ -196,7 +191,7 @@ deallocate(cosla,sinla,coslo,sinlo)
 deallocate(node_from_tree_ind,node_is_counted)
 
 
-if (n_det_negative > 0) print *,'warning!!!! determinant in regular update was negative ',n_det_negative,' times'
+!if (n_det_negative > 0) print *,'warning!!!! determinant in regular update was negative ',n_det_negative,' times'
 
 
 ! correct suspect time gradients
@@ -232,8 +227,6 @@ end subroutine propagate
 ! for intersection nodes i1,i2,i3 are 0, intersection #, node # in intersection 
 
    i1 = reg%node(centernode)%i1 ; i2 = reg%node(centernode)%i2 ; i3 = reg%node(centernode)%i3
-
-!   print *,'DEBUG:: finding neighbours of',i1,i2,i3
 
    if (i1 /= 0) then
       if (grid%fully_regular(i1,i2,i3)) then
@@ -289,28 +282,17 @@ end subroutine propagate
 
    endif
 
-!print *,'connected cells'
-!do n=1,n_concell
-!   print *,n,concell(n)
-!end do
-
-
 ! make a list of nodes in the connected cells
 
 ! make sure the centernode itself is not counted as one of the neighbours
 
    node_is_counted(centernode)=centernode
-
    n_connode=0
 
    do n=1,n_concell
-
-      ! if centernode is a regular node (i1 /= 0) , the cell is potentially regular
-
+ ! if centernode is a regular node (i1 /= 0) , the cell is potentially regular
       concell_is_regular(n) = (i1 /= 0)
-
 ! find the intersection nodes of connected cell n
-
 !   explanation: each intersection has a 1-D list of cells cut by the interface, and a list of intersection
 !   nodes that are part of each cut cell. Each regular grid cell has a pointer ccind_from_3dc(i,j,k)%p
 !   (Cut Cell INDex FROM 3D Coordinates)
@@ -320,43 +302,26 @@ end subroutine propagate
 
 ! test whether the cell is cut by any interface, in that case the pointer to the local list of
 ! interfaces cutting the cell has been allocated
-
       if (associated(grid%ccind_from_3dc(concell(n)%ir,concell(n)%ilat,concell(n)%ilong)%p)) then
-
 ! if so, check if the cell is cut by the top intersection
-
      ! icell is the index of the current connected cell in the list of cells cut by interface reg%itop.
                   
          icell = grid%ccind_from_3dc(concell(n)%ir,concell(n)%ilat,concell(n)%ilong)%p(reg%itop%iface_id)
-
      ! if icell == 0 the cell is not cut be the top interface
-    
          if(icell /= 0) then
- 
             concell_is_regular(n) = .false.
-
             isec => reg%itop
             do jj=1,isec%n_inodes(icell)
-
 !   m is the node number in the regional node list of node  jj in the list of inteface nodes that are part of cut cell icell
-
                 m=isec%rbel_node_id(isec%inodes(jj,icell))
-
                if ( node_is_counted(m) /= centernode ) then   ! if node is not yet counted as a neighbour of centernode
-
                   n_connode=n_connode+1
                   connode(n_connode)=m
                   node_is_counted(m) = centernode
-
                endif
-
             end do
-
          end if
-
-
 ! then check the bottom intersection
-
          icell = grid%ccind_from_3dc(concell(n)%ir,concell(n)%ilat,concell(n)%ilong)%p(reg%ibot%iface_id)
          if (icell /= 0) then
 

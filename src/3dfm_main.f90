@@ -89,9 +89,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
      call find_intersection(intersection(n),intrface(n),pgrid)
   end do
 
-  print *,'main grid intersections initialized'
-
-
 !----------
 ! set up the 3-D regions that lie between the interfaces 
 
@@ -108,7 +105,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
      region(n)%ibot => intersection(n+1)
 
      if (region(n)%itop%nnode == 0) then
-        print *,'region',n,'does not exist'
         region(n)%nnode = 0
         cycle
      endif
@@ -116,9 +112,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
      call define_region(region(n),region(n)%itop,region(n)%ibot,pgrid)
 
   end do
-
-  print *,'main grid regions initialized'
-
 
 !---------
 
@@ -142,21 +135,14 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
      call velocities_to_region(region(n),pgrid)   
   end do
 
-  print *,'velocities on main grid, its intersections and regions evaluated'
-
-
 !------------------
 ! read source location from file, and determine some of its properties
 
   n_sources = nsources
-!  print *,'nsources is', n_sources
-
  ! we already need to know the number of receivers since these can potentially become sources
  ! if a phase containing late reflections (pp type) is requested
 
   n_receivers = nreceivers
-
-!  print *,'nreceivers is', n_receivers
 
   allocate(receiver(n_receivers))
   do n=1,n_receivers ; call receiver_defaults(receiver(n)) ; receiver(n)%id=n ; end do
@@ -174,8 +160,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
 
   do ns=1,n_sources
 
-     print *,'reading source',ns
-
      s => source(ns) 
 
      !----------------------------------------------------------------
@@ -188,12 +172,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
      s%coslat=cos(s%lat)
      ! determines where the source is located wrt grid/intersections
      call initialize_source(s,pgrid)
-
-
-     if (.not. s%on_interface) print *,'source',ns,' is located in region ',&
-       &s%region_id
-     if (s%on_interface)  print *,'source',ns,' is located on interfaces ',&
-       &s%topint_id,s%botint_id
      !----------------------------------------------------------------
 
 
@@ -205,8 +183,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
      ! ASSUMPTION: Only direct P and S waves are being calculated
      s%n_paths = 2
 
-     !print *,s%n_paths,'is npath'
-
  ! allocate the array containing path information for this source
 
      allocate(s%path(s%n_paths))
@@ -215,8 +191,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
   ! read the paths
 
      do n=1,s%n_paths
-
-        !print *,'reading path',n
  ! register the path id
         s%path(n)%id  = n
 
@@ -227,8 +201,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
         n_tf = 1
 
         s%path(n)%n_tf = n_tf
-
-        !print *,'ntf',s%path(n)%n_tf
 
         allocate(s%path(n)%sequence(2*n_tf))  ! contains the sequence definition
         allocate(s%path(n)%tf_sequence(n_tf)) ! indices of the time fields corresponding to each step
@@ -250,8 +222,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
            stop
         endif
 
-        !print *,s%path(n)%sequence(1:2*s%path(n)%n_tf)
-
      ! check whether the path contains a reflection fit step. Store the number of the step if so
 
         do step=1,n_tf
@@ -259,7 +229,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
            if (s%path(n)%sequence(2*step-1) == s%path(n)%sequence(2*step)) then
               s%path(n)%refstep=step
               s%path(n)%fitting_interface=s%path(n)%sequence(2*step)
-              print *,'path',n,'step',step,' is a reflection step'
               if (no_pp_mode) then
                  print *,'when no_pp_mode is enabled late reflections are not allowed'
                  stop 'illegal request for late reflection fit while no_pp_mode enabled'
@@ -269,9 +238,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
         end do
 
      end do
-
-     print *,s%n_paths,' paths read from file'
-
 
 ! first test paths for consistency with source position 
 
@@ -377,9 +343,6 @@ subroutine run(sources, nsources, receivers, nreceivers, outrays, outtts)
 
   end do  ! loop over input sources
 
-print *,'finished reading sources'
-
-
 !---------------------------------------------------------
 ! read in the receiver properties
 
@@ -395,6 +358,7 @@ do n=1,n_receivers
    rec%r = earth_radius - rec%r
    rec%lat = rec%lat*deg_to_rad
    rec%long = rec%long*deg_to_rad
+   print *,rec%r,rec%lat,rec%long
 
    if ( (rec%lat < pgrid%lat(1) .or. rec%lat > pgrid%lat(pgrid%nlat)) .or. &
         (rec%long < pgrid%long(1) .or. rec%long > pgrid%long(pgrid%nlong))) then
@@ -530,7 +494,6 @@ do n=1,n_receivers
 
 end do
 
-print *,'finished reading receivers'
 
 
 
@@ -590,13 +553,6 @@ do n=1,n_receivers
             s%is_local = .true.
 
             call initialize_source(s,pgrid)
-
-            if (.not. s%on_interface) print *,'virtual receiver source', &
-                 n_sources_ppinc,' is located in region ',s%region_id
-
-            if (s%on_interface) print *,'virtual receiver source', &
-                 n_sources_ppinc,' is located on interfaces ',&
-                 s%topint_id,s%botint_id
 
             receiver(n)%path_equivalent(m)= 1
 
@@ -740,30 +696,7 @@ if (save_timefields_mode) then
        
 endif
 
-
-! check if info for all sources is correct
-
-! print *,'n_sources_ppinc',n_sources_ppinc
-
-!do n=1,n_sources_ppinc
-!   do m=1,source(n)%n_paths
-!
-!      print *
-!      print *,'source',n,'  path', m, 'id', source(n)%path(m)%id
-!      print *,'ntfinit',source(n)%n_tf_init
-!      print *,'ntf =',source(n)%path(m)%n_tf,'refstep=',source(n)%path(m)%refstep
-!      print '(a10,20i5)','path',source(n)%path(m)%sequence(1:2*source(n)%path(m)%n_tf)
-!      print *,'fitting interface',source(n)%path(m)%fitting_interface
-!
-!   end do
-! end do
-
-! stop 'pptest stop'
-
 ! finished initializing!!!!!!!!!!!!!!!!!!!!
-print *,'finsihed initializing sources and receivers'
-print *
-
 call system_clock(t2,count_rate,count_max)
 
 
@@ -818,8 +751,6 @@ do ns=1,n_sources_ppinc
 
    if (s%is_local) then
 
-      print *,'starting to initialize local source',s%id
-
 ! do the first sweep from the source through the regions overlapping source grid
 ! this is a big subroutine that does the entire grid refinement procedure around the source
 ! the call to this subroutine takes a significant part of the computation time
@@ -831,24 +762,16 @@ do ns=1,n_sources_ppinc
 
    if (s%is_teleseismic) then
 
-!      print *,'starting to initialize teleseismic source',s%id,s%teleseismic_id
-
      call initialize_teleseismic_source(s)
 
    endif
 
-   print *,'# time fields from initialization',s%n_time_fields
-
-
 ! we now have the first time fields for every possible sequence
-
-
 ! start the sequence of sweeps required for the paths
 
 pathloop: do n=1,s%n_paths
 
    vtype = s%path(n)%vtype_sequence(1)     ! get the velocity type (P or S)
-   print *
 
  ! identify the first time field of the path, created during initialisation above
 
@@ -871,11 +794,6 @@ pathloop: do n=1,s%n_paths
 
 
    s%path(n)%tf_sequence(1) = prev_tf
-   print *
-   print '(a5,i4,a35,i4)', &
-        'path',s%path(n)%id,' leg  1  using source time field',prev_tf  
-
-
 
 ! now go through the specified sequence of the path
 
@@ -884,10 +802,6 @@ pathloop: do n=1,s%n_paths
       step=(m+1)/2
       vtype = s%path(n)%vtype_sequence(step)
 
-      print *
-      print *,'path=',n,'step=',step,'prev_tf=',prev_tf,'s%nt=',s%n_time_fields
-      print *,'children of prev_tf',s%time_field(prev_tf)%next_tf(1:4)
-
       istart => intersection(s%path(n)%sequence(m))      ! intersection at which the sweep starts
       inext  => intersection(s%path(n)%sequence(m+1))    ! intersection at which the sweep ends
       if (istart%id > inext%id) then
@@ -895,10 +809,6 @@ pathloop: do n=1,s%n_paths
       else
          reg    => istart%regbel
       endif
-
-      print '(a5,i4,a5,i4,a16,i4,a5,i4,a16,i4)', 'path',s%path(n)%id, &
-           ' leg',step,' from interface',istart%id,'to',inext%id,'through region',reg%id
-
 
       ! set the child type of the next time field (up,down,turning,non-turning)
 
@@ -917,10 +827,7 @@ pathloop: do n=1,s%n_paths
 
             ! check if turning rays are indeed present
             if (.not.s%time_field(prev_tf)%turning_rays_present) then
-               print '(a5,i4,a5,i4,a44)', &
-                    'path',n,' leg',step,'no turning rays present, non-existing path'
                s%path(n)%valid=.false.
-               print *,'step=',step,s%path(n)%sequence(1),prev_tf,s%time_field(prev_tf)%inonstart%id
                cycle pathloop
             endif
 
@@ -930,9 +837,6 @@ pathloop: do n=1,s%n_paths
          endif
 
       else   ! only if the previous step is a source time field
-
-         print *,'previous step is a source time field'
-
 
           if (istart%id == s%time_field(prev_tf)%reg%itop%id ) then
 
@@ -948,11 +852,7 @@ pathloop: do n=1,s%n_paths
 
       endif
 
-      print *,'ctype =',ctype,vtype
-
       if (s%time_field(prev_tf)%next_tf(ctype) == 0) then  ! if the required timefield does not exist
-
-         print *,'the requested field does not exist'
 
          ! transfer the starting times to the starting intersection
          ! here we use the fact that regional (and thus timefield) nodes are always in the order
@@ -985,8 +885,6 @@ pathloop: do n=1,s%n_paths
             ! intersection points where reflection is impossible (due to wave type conversion) 
             ! to huge_time so that they do not act as a source
 
-            print *,'calling reflect-gradient at interface',istart%id
-
             call reflect_gradient(istart,s%time_field(prev_tf),vtype)
 
          else
@@ -997,8 +895,6 @@ pathloop: do n=1,s%n_paths
             ! so that they do not act as a source
 
             direction = s%time_field(prev_tf)%reg%id - reg%id
-
-            print *,'calling refract_gradient with direction',direction
 
             call refract_gradient(istart,s%time_field(prev_tf)%reg,vtype,direction)
 
@@ -1031,13 +927,10 @@ pathloop: do n=1,s%n_paths
          s%time_field(s%n_time_fields)%vtype = vtype
 
          prev_tf = s%n_time_fields
-         print *,'created new time field',s%n_time_fields
-
       else  ! the required timefield already exists
 
          ! step to the next (existing) time field
          prev_tf = s%time_field(prev_tf)%next_tf(ctype)
-         print *,'used existing time field',prev_tf
 
          ! store the index of the time field in the sequence of timefields for this path
          s%path(n)%tf_sequence(step) = prev_tf
@@ -1047,11 +940,6 @@ pathloop: do n=1,s%n_paths
    end do   ! crossings in path
 
 end do pathloop  ! path loop
-
-
-do n=1,s%n_paths
-   print '(a5,i5,a12,10i5)','path',s%path(n)%id,' timefields',s%path(n)%tf_sequence(1:s%path(n)%n_tf)
-end do
 
 ! save the arrival times on the main grid for this path if requested
 
@@ -1085,8 +973,6 @@ endif
 
 if (no_pp_mode) then
 
-   print *,'starting the ray tracing for source',s%id
-
    do n=1,n_receivers
 
       do m=1,receiver(n)%n_rays
@@ -1103,10 +989,6 @@ if (no_pp_mode) then
                call trace_ray_from_receiver(receiver(n),s,ray)
 
                if (ray%valid) then   ! valid ray path found
-
-                  print '(a12,i4,a10,i4,a15,i4,a4,f10.4,2l5)','traced ray',m,'to source',s%id,&
-                       ' from receiver',n,'  t=', ray%receiver_time,ray%diffracted,ray%headwave
-                  print *,m,n,ray%receiver_time,ray%nsections
                   outtts(ray%source_id,n,path_id)= sngl(ray%receiver_time)
                   do i=1,ray%nsections
                     do j=1,ray%section(i)%npoints
@@ -1123,9 +1005,6 @@ if (no_pp_mode) then
                   if (display_mode) call store_ray(ray)
 
                else   ! ray tracing found that this ray path does not exist
-
-                  print '(a12,i4,a10,i4,a15,i4,a13)','ray',m,'to source',ray%source_id,&
-                       ' from receiver',n,' is invalid'
 
                   k=0
                   t_arrival=-1.0_dp
@@ -1156,10 +1035,7 @@ if (no_pp_mode) then
 
                   ray => receiver(n)%ray(m)
                   if (ray%valid) then
-                     print *, 'getting partials for rec',n,'ray',m
                      call ray_partials(ray)
-                  else
-                     print *,'no valid ray path for rec',n,'ray',m
                   endif
 
                endif
@@ -1214,15 +1090,6 @@ if (no_pp_mode) then
    end do
 endif
 
-if (no_pp_mode) then
-   print *,'finished  fast marching and ray tracing for source',s%id   
-else
-   print *,'finished the fast marching for source',s%id
-endif
-
-print *,'******************************************************************************'
-print *
-
 end do ! loop over sources
 
 
@@ -1257,8 +1124,6 @@ if (n_receivers > 0 .and. (.not.no_pp_mode)) then
    if (display_mode) open(42,file='raytype')
    raypoint_counter=0
 
-   print *,'starting the ray tracing'
-
    do n=1,n_receivers
 
       do m=1,receiver(n)%n_rays
@@ -1277,18 +1142,12 @@ if (n_receivers > 0 .and. (.not.no_pp_mode)) then
 
                if (ray%valid) then   ! valid ray path found
 
-                  print '(a12,i4,a10,i4,a15,i4,a4,f10.4,2l5)','traced ray',m,'to source',ray%source_id,&
-                       ' from receiver',n,'  t=', ray%receiver_time,ray%diffracted,ray%headwave
-
                   k=0
                   write(11,'(4i6,f15.6,2l5)') n,ray%source_id,m,k,ray%receiver_time,ray%diffracted,ray%headwave
 
                   if (display_mode) call store_ray(ray)
 
                else   ! ray tracing found that this ray path does not exist
-
-                  print '(a12,i4,a10,i4,a15,i4,a13)','ray',m,'to source',ray%source_id,&
-                       ' from receiver',n,' is invalid'
 
                   k=0
                   t_arrival=-1.0_dp               
@@ -1317,10 +1176,7 @@ if (n_receivers > 0 .and. (.not.no_pp_mode)) then
                   do k=1,receiver(n)%ray(m)%n_subrays
                      ray => receiver(n)%ray(m)%subray(k)
                      if (ray%valid) then
-                        print *, 'getting partials for rec',n,'ray',m,'subray',k
                         call ray_partials(ray)
-                     else
-                        print *, 'no valid ray path for rec',n,'ray',m,'subray',k
                      endif
                   end do
 
@@ -1328,10 +1184,7 @@ if (n_receivers > 0 .and. (.not.no_pp_mode)) then
 
                   ray => receiver(n)%ray(m)
                   if (ray%valid) then
-                     print *, 'getting partials for rec',n,'ray',m
                      call ray_partials(ray)
-                  else
-                     print *,'no valid ray path for rec',n,'ray',m
                   endif
 
                endif
@@ -1347,10 +1200,6 @@ if (n_receivers > 0 .and. (.not.no_pp_mode)) then
 
 
          else           ! the original path was recognised as invalid during the timefield calculations
-
-            print *,'ray',m,' to receiver ',n, &
-                 ' : requested path was recognised as invalid during the timefield calculations'
-
             ray%valid = .false.
             k=0
             t_arrival=-1.0_dp               
@@ -1373,12 +1222,6 @@ if (n_receivers > 0 .and. (.not.no_pp_mode)) then
    if (display_mode) close(42)
 
    call system_clock(t5,count_rate,count_max)
-
-   print *,'init time       :',dble(t2-t1)/dble(count_rate),' sec'
-
-   print *,'propagation time:',dble(t4-t3)/dble(count_rate),' sec'
-
-   print *,'ray tracing time:',dble(t5-t4)/dble(count_rate),' sec'
 
    if (display_mode) call display_stored_rays
 

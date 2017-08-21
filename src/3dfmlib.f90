@@ -124,13 +124,6 @@ pgrid%r0 = h0
 pgrid%lat0 = lat0
 pgrid%long0 = lon0
 
-!print *,'DEBUG:: initialize_propagation_grid(1.1):',pgrid%r0,&
-!  &(pgrid%nr-1)*pgrid%dr0+pgrid%r0,pgrid%nr,pgrid%dr0
-!print *,'DEBUG:: initialize_propgation_grid(1.2):',pgrid%lat0,&
-!  &(pgrid%nlat-1)*pgrid%dlat0+pgrid%lat0,pgrid%nlat,pgrid%dlat0
-!print *,'DEBUG:: initialize_propagation_grid(1.3):',pgrid%long0,&
-!  &(pgrid%nlong-1)*pgrid%dlong0+pgrid%long0,pgrid%nlong,pgrid%dlong0
-
 deg_to_rad=acos(-1.0_dp)/180.0_dp
 
 pgrid%dlat0=pgrid%dlat0*deg_to_rad
@@ -185,11 +178,8 @@ end do
 
 pgrid%is_main_grid = .true.
 
-!print *,'DEBUG:: initialize_propagation_grid(2.1):',pgrid%r(1),&
 !  &pgrid%r(pgrid%nr),pgrid%nr,pgrid%dr0
-!print *,'DEBUG:: initialize_propagation_grid(2.2):',pgrid%lat(1),&
 !  &pgrid%lat(pgrid%nlat),pgrid%nlat,pgrid%dlat0
-!print *,'DEBUG:: initialize_propagation_grid(2.3):',pgrid%long(1),&
 !  &pgrid%long(pgrid%nlong),pgrid%nlong,pgrid%dlong0
 
 end subroutine initialize_propagation_grid
@@ -258,7 +248,6 @@ do n=1,n_interfaces
    end do
 
    intrface(n)%nnode=intrface(n)%nlat*intrface(n)%nlong
-   print *,intrface(n)%r(1,1)
 
 end do  ! loop over interfaces
 
@@ -298,8 +287,6 @@ end do  ! loop over interfaces
 
   end do
 
-  !print *,'DEBUG:: initialize_interfaces(3.1):',intrface(1)%r(1,1),pgrid%r(pgrid%nr)
-  !print *,'DEBUG:: initialize_interfaces(3.2):',intrface(2)%r(1,1),pgrid%r(1)
 
 end subroutine initialize_interfaces
 
@@ -460,7 +447,6 @@ ir=floor((r-gridv%r0)/gridv%dr0)+1
 ilat=floor((lat-gridv%lat0)/gridv%dlat0)+1
 ilong=floor((long-gridv%long0)/gridv%dlong0)+1
 
-!print *,ir,r,gridv%r0,gridv%dr0
 
 if (ir < 2 .or. ir > (gridv%nr-2)) then
    print *,r,ir,gridv%nr
@@ -871,18 +857,12 @@ do k=1,grid%nlong
    end do
 end do
 
-print *,'intersection ',isec%id, ':',nodecount,' nodes found'
-
 if (nodecount == 0) then
    isec%nnode=nodecount
-   print *,'no intersection points found,intersection',isec%id,' not created'
    deallocate(rdiff,r_interface,ijk_isec,type_isec,extranodes,nextranodes)
    deallocate(isec%irg_abo,isec%irg_bel)
    return
 endif
-
-!print *,isec%id,'irgbel,irgabo',isec%irg_bel(11,71),isec%irg_abo(11,71)
-
 
 ! allocate the arrays required to store the intersection
 
@@ -1158,10 +1138,7 @@ if (itop%nnode == 0 .and. ibot%nnode == 0) then
 endif
 
 
-! print *,'def reg: grid node region id assigned'
-
 ! derive and store useful information about the regions
-
 ! register the region with bounding intersections
    itop%regbel => reg 
    ibot%regabo => reg 
@@ -1170,9 +1147,6 @@ endif
 ! # of grid nodes in this region
    reg%ngnode=count(grid%node_region == reg%id)  ! regular grid nodes only
    reg%nnode=reg%ngnode + itop%nnode + ibot%nnode ! total
-
-!   print *,'reg def: nnode = ',reg%nnode
-
 
 ! make a 1-D list of all nodes (grid + intersection) nodes in this region
 
@@ -1194,7 +1168,6 @@ endif
    allocate(reg%coslat(reg%nnode))
    allocate(reg%long(reg%nnode))
 
- !  print *,'reg def : pos arrrays allocated'
 
 ! start constructing the 1-D pointer arrays
    m=0
@@ -1219,8 +1192,6 @@ endif
       end do
    end do
 
-! print *,'reg def regular nodes initialized'
-
 ! add the top bounding intersection nodes if they exist 
    if (itop%nnode > 0) then
       do i=1,itop%nnode
@@ -1235,8 +1206,6 @@ endif
          reg%long(m) = itop%long(i)
       end do
    endif
-
-! print *,'reg def top nodes initialized'
 
 ! add the bottom bounding intersection nodes if they exist
    if (ibot%nnode > 0) then
@@ -1254,8 +1223,6 @@ endif
    endif
 
    if (m /= reg%nnode) stop 'define region: node count mismatch'
-
-!   print *,'reg def bot nodes initialized'
 
 return
 
@@ -1474,8 +1441,6 @@ nodeloop:      do i=1,isec%nnode
 
       end do nodeloop ! loop over intersection nodes
 
-      print '(a50,2i7)','corrected velocities at pinched nodes of iface ',isec%iface_id,m
-
    endif  ! if interface is pinched
 
 
@@ -1546,9 +1511,6 @@ subroutine initialize_source(s,grid)
   real(kind=dp) :: dist,dist_below,interpolate_interface,h
   logical,dimension(:),allocatable       :: source_on_interface
 
-
-!  print *,'entering initialize_source'
-
 ! test for source in grid
 
   if (s%lat > pgrid%lat(pgrid%nlat)+pgrid%tolerance/s%r ) stop 'ERROR: source position beyond maximum lat'
@@ -1559,8 +1521,6 @@ subroutine initialize_source(s,grid)
        stop 'ERROR:source above surface'
   if (s%r < interpolate_interface(s%lat,s%long,intrface(n_interfaces))-pgrid%tolerance ) &
        stop 'ERROR:source below lowest interface'
-
-!  print*, 'after test',s%r,interpolate_interface(s%lat,s%long,intrface(n_interfaces))-pgrid%tolerance
 
 ! determine grid cell in which the source is located
 
@@ -1596,7 +1556,6 @@ subroutine initialize_source(s,grid)
      dist = s%r-interpolate_interface(s%lat,s%long,intrface(n))
 
      source_on_interface(n) = abs(dist) < 2.0_dp*grid%tolerance 
-     if (source_on_interface(n))   print *,'source lies exactly on interface',n
 
      if (dist < 0.0_dp .and. dist_below > 0.0_dp) s%region_id = n
 
@@ -1639,8 +1598,6 @@ subroutine initialize_source(s,grid)
         s%n_tf_init = 2
      endif
 
-!     print *,'istest',s%topint_id,s%botint_id,s%topreg_id,s%botreg_id
-!     stop
   endif
 
   deallocate(source_on_interface)
@@ -1738,16 +1695,10 @@ subroutine sweep_region_from_interface(reg,istart_in,vtype,s)
      reg%node_status(j)=1
   end do
 
- ! print *,'region',reg%id,' starting times set'
-
-
 !-------------------------------------------------------------------------------------
 ! do the fast marching sweep
 
   call propagate(reg,vtype)
-
-  print *,'propagation through region',reg%id,' finished'
-
 
 ! transfer regional travel times to interfaces and regular grid
 ! and check for turning rays
@@ -1787,8 +1738,6 @@ subroutine sweep_region_from_interface(reg,istart_in,vtype,s)
      endif
 
   end do
-      
-  if (n_turning > 0) print *,n_turning,' starting intersection nodes received a turning ray'
 
 
   ! transfer time field to the array of saved time fields
@@ -1866,15 +1815,10 @@ subroutine sweep_sregion_from_interface(reg,istart_in,vtype)
      reg%node_status(j)=1
   end do
 
- ! print *,'sregion',reg%id,' starting times set'
-
-
 !-------------------------------------------------------------------------------------
 ! do the fast marching sweep
 
   call propagate(reg,vtype)
-
-  print *,'propagation through sregion',reg%id,' finished'
 
 end subroutine sweep_sregion_from_interface
 
@@ -1933,10 +1877,6 @@ subroutine sweep_region_from_source(reg,s,vtype)
         reg%arrivaltime(j)= 0.0_dp
         reg%time_gradient(1:3,j)= 0.0_dp
         reg%node_status(j)=1 
-       
-!        print *,'time 0 assigned to',j,i1,i2,i3
-!        print *,reg%r(j),reg%lat(j)/dtr,reg%long(j)/dtr
-
 
      else                          ! node is an interface node
 
@@ -1948,9 +1888,6 @@ subroutine sweep_region_from_source(reg,s,vtype)
         reg%arrivaltime(j)= 0.0_dp
         reg%time_gradient(1:3,j)= 0.0_dp
         reg%node_status(j)= 1
-
-        print *,'source node',j,'set to zero time'
-!        print *,reg%r(j),reg%lat(j)/dtr,reg%long(j)/dtr
 
      endif
 
@@ -2006,17 +1943,10 @@ subroutine sweep_region_from_source(reg,s,vtype)
 
   endif
 
-!  print *,'region',reg%id,' starting times set'
-
-!  print *,'calling propagate in sweep region from source'
-
-
 !-------------------------------------------------------------------------------------
 ! do the fast marching sweep
 
   call propagate(reg,vtype)
-
-  print *,'propagation through region',reg%id,' finished'
 
   return
 
@@ -2085,11 +2015,7 @@ subroutine initialize_refined_source(s,sc,grid,reg,itop,ibot)
         stop 'illegal source interface in initialize refined source'
      endif
 
-
- !     print *,'isec%id',n,isec%id,isec%iface_id
-
      iface=isec%iface_id
-
 
         ! test if the source lies exactly on an intersection node
 
@@ -2107,7 +2033,6 @@ subroutine initialize_refined_source(s,sc,grid,reg,itop,ibot)
            s%cnode(s%n_cnode)%i2=isec%id
            s%cnode(s%n_cnode)%i3=m
            s%on_grid=.true.
-           print *,'source lies on node ',m,' of intersection ',isec%id
 
            exit
 
@@ -2116,8 +2041,6 @@ subroutine initialize_refined_source(s,sc,grid,reg,itop,ibot)
 
 
      if (.not. s%on_grid) then   ! source lies on interface but not on an interface node
-
-        print *,'source lies exactly on interface',iface,'but not on a node'
 
         !  find the nodes of intersection that are part of the cell containing the source
 
@@ -2166,69 +2089,38 @@ subroutine initialize_refined_source(s,sc,grid,reg,itop,ibot)
      do i=0,1
         do j=0,1
            do k=0,1
-
-!              print *,s%r,s%lat,s%long
-!              print *,s%ir+i,s%ilat+j,s%ilong+k
-!              print *,grid%r(s%ir+i),grid%lat(s%ilat+j),grid%long(s%ilong+k)
-!              print *
-
               dist=sqrt((s%r-grid%r(s%ir+i))**2 + (s%r*(s%lat-grid%lat(s%ilat+j)))**2 &
                    + (s%r*s%coslat*(s%long-grid%long(s%ilong+k)))**2 ) 
-!              print *,i,j,k,dist
               if (dist < grid%tolerance) then
-
-
-
                  s%on_grid=.true.
                  s%n_cnode = s%n_cnode + 1
                  s%cnode(s%n_cnode)%i1=s%ir+i
                  s%cnode(s%n_cnode)%i2=s%ilat+j
                  s%cnode(s%n_cnode)%i3=s%ilong+k
-                 print *,'source on grid but not interface'
-
               endif
-
            end do
         end do
      end do
- 
-             
      if (.not. s%on_grid) then
-
-        print *,'source does not lie on grid'
-
 ! test if the cell in which the source resides is cut
-
         if (associated(grid%ccind_from_3dc(s%ir,s%ilat,s%ilong)%p)) then
-
-           print *,'source lies in a cut cell'
-
         ! if so, make a list of the nodes in the cut cell
-
         ! first the intersection nodes
-
            do n=1,2
-
               if (n == 1) isec => itop
               if (n == 2) isec => ibot
-
               if (grid%ccind_from_3dc(s%ir,s%ilat,s%ilong)%p(isec%iface_id) /= 0) then
-
                  m= grid%ccind_from_3dc(s%ir,s%ilat,s%ilong)%p(isec%iface_id)
                  do i=1,isec%n_inodes(m)
-              
                     k=isec%inodes(i,m)
                     s%n_cnode = s%n_cnode + 1
                     s%cnode(s%n_cnode)%i1=0
                     s%cnode(s%n_cnode)%i2=isec%id
                     s%cnode(s%n_cnode)%i3=k
-                 
                  end do
               endif
            end do
-
         !then the regular nodes
-
            do i=-1,2
               is=s%ir+i
               do j=-1,2
@@ -2243,31 +2135,12 @@ subroutine initialize_refined_source(s,sc,grid,reg,itop,ibot)
                        s%cnode(s%n_cnode)%i1=is
                        s%cnode(s%n_cnode)%i2=js
                        s%cnode(s%n_cnode)%i3=ks
-!                       print '(6i5,i8)',i,j,k,s%cnode(s%n_cnode)%i1,is,js,ks,grid%rnode_id(is,js,ks)
                     endif
                  end do
               end do
            end do
-
-!           do i=0,1
-!              do j=0,1
-!                 do k=0,1
-!                    if (grid%node_region(s%ir+i,s%ilat+j,s%ilong+k) == s%region_id) then
-!                       s%n_cnode = s%n_cnode + 1
-!                       s%cnode%i1=s%ir+i
-!                       s%cnode%i2=s%ilat+j
-!                       s%cnode%i3=s%ilong+k
-!                    endif
-!                 end do
-!              end do
-!           end do
-
         else   ! the cell in which the source lies is not cut
-
         ! make a list of the nodes in the regular cell
-
-           print *,'source lies in an uncut cell'
-
            do i=-1,2
               is=s%ir+i
               do j=-1,2
@@ -2282,30 +2155,17 @@ subroutine initialize_refined_source(s,sc,grid,reg,itop,ibot)
                        s%cnode(s%n_cnode)%i1=is
                        s%cnode(s%n_cnode)%i2=js
                        s%cnode(s%n_cnode)%i3=ks
-!                       print '(6i5,i8)',i,j,k,s%cnode(s%n_cnode)%i1,is,js,ks,grid%rnode_id(is,js,ks)
                     endif
                  end do
               end do
            end do
         endif    ! cut cell or else
-
      endif  ! if not on grid
-
   endif  ! if not on interface
-
-!  print *,'source nodes'
-!  do n=1,s%n_cnode
-!     print '(4i5)',n,s%cnode(n)%i1,s%cnode(n)%i2,s%cnode(n)%i3
-!  end do
-
   return
-
 end subroutine initialize_refined_source
 
-
-
 !-----------------------------------------------------------------------------------------------------
-
 ! This is an alternative refined source initialization (currently not used)
 ! Initializes a larger region region around the source with simple analytical estimates
 
@@ -2355,143 +2215,82 @@ subroutine initialize_refined_source2(s,sc,grid,reg,itop,ibot)
 
      if (n == 1) isec => itop
      if (n == 2) isec => ibot
-
-!     print *,'isec%id',n,isec%id,isec%iface_id
-
-
      if (isec%nnode /= 0) then  ! intersection corresponds to a real interface 
-
-!     print *,n,s%r,interpolate_interface(s%lat,s%long,intrface(iface))
-
         dist = s%r-interpolate_interface(s%lat,s%long,intrface(isec%iface_id))
-
-
 ! first test if the source lies exactly on the interface
-
         if (abs(dist) < grid%tolerance) then  ! source lies on interface
-
            s%interface_id = isec%iface_id
            s%on_interface=.true.
-           print *,'source lies exactly on interface',isec%id
-
         ! test if the source lies exactly on an intersection node
-
            do m=1,isec%nnode
-
               dist =sqrt((s%r-isec%r(m))**2 +(s%r*(s%lat-isec%lat(m)))**2 + &
                    (s%r*s%coslat*(s%long-isec%long(m)))**2 )
-
               if (dist < grid%tolerance) then  ! source lies exactly on an interface node
-
               ! assign time value 0 to the source node
-
                  s%n_cnode = s%n_cnode + 1
                  s%cnode(s%n_cnode)%i1=0
                  s%cnode(s%n_cnode)%i2=isec%id
                  s%cnode(s%n_cnode)%i3=m
                  s%on_grid=.true.
-
                  if (n == 1) source_node=isec%rbel_node_id(m)
                  if (n == 2) source_node=isec%rabo_node_id(m)
-
                  call get_source_neighbours(source_node,s,reg,grid)                 
-
-                 print *,'source lies on node ',m,' of intersection ',isec%id
                  exit
-
               endif
            end do
-
            if (.not. s%on_grid) then   ! source lies on interface but not on an interface node
-
            !  find the nodes of intersection that are part of the cell containing the source
-
               m= grid%ccind_from_3dc(s%ir,s%ilat,s%ilong)%p(n)
               do i=1,isec%n_inodes(m)
-              
                  k=isec%inodes(i,m)
                  s%n_cnode = s%n_cnode + 1
                  s%cnode(s%n_cnode)%i1=0
                  s%cnode(s%n_cnode)%i2=isec%id
                  s%cnode(s%n_cnode)%i3=k
-
               end do
            end if
-
            exit ! we don't need to test other interfaces if the source lies exactly on the present one
-
         endif    ! test for source on interface
-
      endif  ! test for real intersection
-
   end do
-
-
-
 ! test if the source lies exactly on a regular grid node or not
-
   if (.not. s%on_interface) then
-
      do i=0,1
         do j=0,1
            do k=0,1
-
-!              print *,s%r,s%lat,s%long
-!              print *,grid%r(s%ir+i),grid%r(s%ilat++j),grid%long(s%ilong+k)
-!              print *
-
               dist=sqrt((s%r-grid%r(s%ir+i))**2 + (s%r*(s%lat-grid%lat(s%ilat+j)))**2 &
                    + (s%r*s%coslat*(s%long-grid%long(s%ilong+k)))**2 ) 
-!              print *,i,j,k,dist
               if (dist < grid%tolerance) then
-
                  s%on_grid=.true.
                  is=s%ir+i ; js=s%ilat+j ; ks=s%ilong+k
-
                  source_node= grid%rnode_id(is,js,ks)
                  write(22,*) 'snode =',is,js,ks
                  call get_source_neighbours(source_node,s,reg,grid)
                  exit
-
               endif
-
            end do
         end do
      end do
- 
-             
      if (.not. s%on_grid) then
-
 ! test if the cell in which the source resides is cut
-
         if (associated(grid%ccind_from_3dc(s%ir,s%ilat,s%ilong)%p)) then
-
         ! if so, make a list of the nodes in the cut cell
-
         ! first the intersection nodes
-
            do n=1,2
-
               if (n == 1) isec => itop
               if (n == 2) isec => ibot
-
               if (grid%ccind_from_3dc(s%ir,s%ilat,s%ilong)%p(isec%iface_id) /= 0) then
-
                  m= grid%ccind_from_3dc(s%ir,s%ilat,s%ilong)%p(isec%iface_id)
                  do i=1,isec%n_inodes(m)
-              
                     k=isec%inodes(i,m)
                     s%n_cnode = s%n_cnode + 1
                     s%cnode(s%n_cnode)%i1=0
                     s%cnode(s%n_cnode)%i2=isec%id
                     s%cnode(s%n_cnode)%i3=k
-                 
                  end do
               endif
            end do
-
         !then the regular nodes
-
            do i=0,1
               do j=0,1
                  do k=0,1
@@ -2504,44 +2303,26 @@ subroutine initialize_refined_source2(s,sc,grid,reg,itop,ibot)
                  end do
               end do
            end do
-
         else   ! the cell in which the source lies is not cut
-
         ! make a list of the nodes in the regular cell
-
            do i=0,1
               do j=0,1
                  do k=0,1
-
                     s%n_cnode = s%n_cnode + 1
                     s%cnode(s%n_cnode)%i1=s%ir+i
                     s%cnode(s%n_cnode)%i2=s%ilat+j
                     s%cnode(s%n_cnode)%i3=s%ilong+k
-
                  end do
               end do
            end do
         endif    ! cut cell or else
-
      endif  ! if not on grid
-
   endif  ! if not on interface
-
-
   do n=1,s%n_cnode
      write(22,*) n,s%cnode(n)%i1,s%cnode(n)%i2,s%cnode(n)%i3
   end do
-
   return
-
 end subroutine initialize_refined_source2
-
-!***********************************************************************************************
-
-
-
-
-!***********************************************************************************************
 
 !***********************************************************************************************
 ! This subroutine takes a source as input, constructs a refined grid around the source 
@@ -2555,12 +2336,10 @@ implicit none
 
 type(Tsource)       :: s  ! the source with its properties on the main grid
 type(Tsource)       :: ss ! the source with its properties on the refined grid
-
 type(Tintersection),pointer :: itop,ibot    ! top and bottom intersections of refined grid
 type(Tintersection),pointer :: itopc,ibotc  ! top and bottom intersections of main grid
 type(Tregion),pointer       :: reg          ! the source region in the main grid
 type(Tregion),pointer       :: sreg         ! the refined source region 
-
 
 ! local stuff
 integer :: n,m,i,j,k,i1,i2,i3,prev_tf,nstart
@@ -2571,14 +2350,12 @@ integer        ::t1,t2
 call system_clock(t1)
 
 ! first construct the refined grid around the source
-
 allocate(sgrid)
 call pgrid_defaults(sgrid)
 
 sgrid%is_source_grid = .true.
 
 ! limits of volume of main grid to be refined, taking main grid boundaries into account
-
 i =  nint((s%r - pgrid%r0)/pgrid%dr0 + 1)
 j =  nint((s%lat - pgrid%lat0)/pgrid%dlat0 + 1)
 k =  nint((s%long - pgrid%long0)/pgrid%dlong0 + 1)
@@ -2591,13 +2368,11 @@ nlongmax = min(pgrid%nlong , k + ncell_to_be_refined)
 nlongmin = max( 1 , k - ncell_to_be_refined)
 
 ! origin of the refined source grid in propagation grid index coordinates
-
 sgrid%index_r0 = nrmin
 sgrid%index_lat0 = nlatmin
 sgrid%index_long0 = nlongmin
 
 ! calculate the refined source grid parameters
-
 sgrid%nr      = (nrmax - nrmin)*refinement_factor + 1
 sgrid%nlat    = (nlatmax - nlatmin)*refinement_factor + 1
 sgrid%nlong   = (nlongmax - nlongmin)*refinement_factor + 1
@@ -2608,9 +2383,7 @@ sgrid%r0      = pgrid%r(s%ir) - (s%ir - nrmin)*pgrid%dr0
 sgrid%lat0    = pgrid%lat(s%ilat) - (s%ilat - nlatmin)*pgrid%dlat0
 sgrid%long0   = pgrid%long(s%ilong) - (s%ilong - nlongmin)*pgrid%dlong0
 
-
 ! initialize the grid coordinates
-
 allocate(sgrid%r(sgrid%nr),sgrid%lat(sgrid%nlat),sgrid%long(sgrid%nlong),sgrid%coslat(sgrid%nlat))
 
 do i=1,sgrid%nr
@@ -2625,16 +2398,13 @@ do i=1,sgrid%nlat
    sgrid%coslat(i)=cos(sgrid%lat(i))
 end do
 
-
 do i=1,sgrid%nlong
    sgrid%long(i)=sgrid%long0 + (i-1)*sgrid%dlong0
 end do
 
 sgrid%tolerance = refinement_factor*interface_tolerance*sgrid%dr0
 
-
 ! allocate storage for the refined source grid, intersections and regions
-
 allocate(sgrid%rnode_id(sgrid%nr,sgrid%nlat,sgrid%nlong))
 sgrid%rnode_id=0
 allocate(sgrid%node_region(sgrid%nr,sgrid%nlat,sgrid%nlong))
@@ -2665,111 +2435,69 @@ do n=1,n_sintersections
       allocate(sintersection(n)%time_gradient(3,sintersection(n)%nnode))
    endif
 end do
-
-print *,'intersections found'
-
-
 ! set a flag at nodes on the grid that are completely regular, i.e. none of the connected cells
 ! has irregular nodes
-
 call tag_regular_nodes(sgrid)
-print *,'nodes of refined source grid tagged'
-
-
-
 do n=1,n_sregions
-
      sregion(n)%id=n
-
 ! pointers to the intersections that are the boundaries of the region
      sregion(n)%itop => sintersection(n)
      sregion(n)%ibot => sintersection(n+1)
      sregion(n)%ivgrid=region(n)%ivgrid
-
      if (sregion(n)%itop%nnode == 0 .and.sregion(n)%ibot%nnode == 0 .and. &
           sregion(n)%id /= s%region_id ) then
-
-        print *,'sregion',n,'does not exist in refined source grid'
         sregion(n)%nnode = 0
         cycle
-
      endif
-
    call define_region(sregion(n),sintersection(n),sintersection(n+1),sgrid)
-
-   print *,'refined source region',n,' defined, nnode =',sregion(n)%nnode
-
 end do
-
-
 ! transfer the velocity values to all refined grid nodes
-
 call velocities_to_grid(sgrid)
-
 do n=1,n_sintersections
    if (sintersection(n)%nnode /= 0) call velocities_to_intersection(sintersection(n))
 end do
 do n=1,n_sregions
   if (sregion(n)%nnode > 0)  call velocities_to_region(sregion(n),sgrid)
 end do
-
-print *,'refined velocities transferred'
-
-
-
 !!------------------------------------------------------------------------------------------------
 ! determine the paths up and down from the source region covering the main regions overlapping 
 ! with the refined source region
 !------------------------------------------------------------------------------------------------
-
 ! set default values for the intialization paths
-
 do i=1,2
    do j=1,2
       call path_defaults(s%init_path(i,j))
       s%init_path(i,j)%used = .false.
    end do
 end do
-
 ! first construct the path up if it exists
-
 do vtype=1,n_vtypes
-
 ! ! first construct the path up if it exists ( init_path(1,vtype) )
-
 if (.not.(s%on_interface .and. s%topint_id == 1)) then
-
-!   print *,'constructing source sequence up'
-
    if (s%on_interface) then
       nstart = s%topreg_id - 1
    else
       nstart = s%region_id - 1
    endif
-
    s%init_path(1,vtype)%n_tf = 1
    do n=nstart,1,-1     ! count the number of timefields up
       if (sregion(n)%nnode > 0) then
          s%init_path(1,vtype)%n_tf = s%init_path(1,vtype)%n_tf + 1
       endif
    end do
-
    allocate(s%init_path(1,vtype)%sequence(2*s%init_path(1,vtype)%n_tf))
    allocate(s%init_path(1,vtype)%tf_sequence(s%init_path(1,vtype)%n_tf))
-
    s%init_path(1,vtype)%id  = 0
    s%init_path(1,vtype)%valid= .true.
    s%init_path(1,vtype)%used = .true.
    s%init_path(1,vtype)%refstep = 0
    s%init_path(1,vtype)%fitting_interface = 0
-
    s%init_path(1,vtype)%sequence(1) = 0
    if (s%on_interface) then
       s%init_path(1,vtype)%sequence(2) = region(s%topreg_id)%itop%iface_id
    else
       s%init_path(1,vtype)%sequence(2) = region(s%region_id)%itop%iface_id
    endif
-
 ! construct the sequence of the first path
    if (s%init_path(1,vtype)%n_tf > 1) then   
       do i=2,s%init_path(1,vtype)%n_tf
@@ -2777,45 +2505,33 @@ if (.not.(s%on_interface .and. s%topint_id == 1)) then
          s%init_path(1,vtype)%sequence(2*i) = s%init_path(1,vtype)%sequence(2*i-1) - 1
       end do
    endif
-
 endif
-
-
 ! ! then construct the path down if it exists ( init_path(2,vtype) )
-
 if (.not.(s%on_interface .and. s%botint_id == n_interfaces)) then
-
-!   print *,'constructing source sequence down'
-
    if (s%on_interface) then
       nstart = s%botreg_id + 1
    else
       nstart = s%region_id + 1
    endif
-
    s%init_path(2,vtype)%n_tf = 1
    do n=nstart,n_sregions     ! count the number of timefields down
       if (sregion(n)%nnode > 0) then
          s%init_path(2,vtype)%n_tf = s%init_path(2,vtype)%n_tf + 1
       endif
    end do
-
    allocate(s%init_path(2,vtype)%sequence(2*s%init_path(2,vtype)%n_tf))
    allocate(s%init_path(2,vtype)%tf_sequence(s%init_path(2,vtype)%n_tf))
-
    s%init_path(2,vtype)%id  = 0
    s%init_path(2,vtype)%valid= .true.
    s%init_path(2,vtype)%used = .true.
    s%init_path(2,vtype)%refstep = 0
    s%init_path(2,vtype)%fitting_interface = 0
-
    s%init_path(2,vtype)%sequence(1) = 0
    if (s%on_interface) then
       s%init_path(2,vtype)%sequence(2) = region(s%botreg_id)%ibot%iface_id
    else
       s%init_path(2,vtype)%sequence(2) = region(s%region_id)%ibot%iface_id
    endif
-
 ! construct the sequence of the second path
    if (s%init_path(2,vtype)%n_tf > 1) then   
       do i=2,s%init_path(2,vtype)%n_tf
@@ -2823,30 +2539,16 @@ if (.not.(s%on_interface .and. s%botint_id == n_interfaces)) then
          s%init_path(2,vtype)%sequence(2*i) = s%init_path(2,vtype)%sequence(2*i-1) + 1
       end do
    endif
-
 endif
-
 end do   ! vtypes
-
 ! paths through the regions overlapping with the source region have been defined
-
-
 ! do the initialization for the number of velocity types in the problem
-
 do vtype=1,n_vtypes
-
-print *,'--------------------------------------------------'
-print *,'starting source initialization for vtype =',vtype
-
 !--------------------------------------------------------
 ! Do the propagation through the source regions first
-   
 ! if the source lies on an interface initialize both regions above and below, else only source region
-
 do n=1,s%n_tf_init
-
    if (s%on_interface) then   ! initialize the regions above and below the interface
-
       if (s%n_tf_init == 2) then
          if (n==1) sreg => sregion(s%topreg_id)
          if (n==2) sreg => sregion(s%botreg_id)
@@ -2854,168 +2556,81 @@ do n=1,s%n_tf_init
          if (s%topreg_id > 0) sreg => sregion(s%topreg_id)
          if (s%botreg_id < n_regions) sreg => sregion(s%botreg_id)        
       endif
-
    else                       ! only he one region in which the source lies
       sreg => sregion(s%region_id)
    endif
-
    itop => sintersection(sreg%id) ! top intersection of the refined source region
    ibot => sintersection(sreg%id+1)   ! bottom intersection of the refined source region
-
-
    ! initialize the source in the refined source grid. 
-
    call initialize_refined_source(ss,s,sgrid,sreg,itop,ibot)
-
-   print *,'refined source initialized in sregion',sreg%id
-
-
    ! sweep the refined source grid
-
    call sweep_region_from_source(sreg,ss,vtype)
-
-   print *,'refined source region',sreg%id,' swept'
-
-
    ! transfer regional travel times to interfaces and regular grid
-
-!  if (itop%nnode > 0 .and. .not. associated(itop%arrivaltime)) allocate(itop%arrivaltime(itop%nnode))
-!  if (ibot%nnode > 0 .and. .not. associated(ibot%arrivaltime)) allocate(ibot%arrivaltime(ibot%nnode))
-
-
    do i=1,sreg%nnode
-
       i1 = sreg%node(i)%i1 ; i2 = sreg%node(i)%i2 ; i3 = sreg%node(i)%i3
-
       if (i1 == 0) then
-
          sintersection(i2)%arrivaltime(i3) = sreg%arrivaltime(i)
          sintersection(i2)%time_gradient(1:3,i3) = sreg%time_gradient(1:3,i)
-
       else
-
          sgrid%arrivaltime(i1,i2,i3)= sreg%arrivaltime(i)
-
       endif
-
    end do
-
 enddo
-
-
-
 !--------------------------------------------------------------------------------
 ! now sweep up and down through the remaining regions of the refined source grid
-
 ! sweep up
-
 if (.not.s%on_interface .or. (s%on_interface .and. s%topreg_id > 1)) then
-
    if (s%on_interface) then
       nstart = s%topreg_id - 1
    else
       nstart = s%region_id - 1
    endif
-
    do n=nstart,1,-1
-
       sreg => sregion(n)
-
       if (sreg%nnode > 0) then
-
          call refract_gradient(sintersection(n+1),sregion(sreg%id+1),vtype,1)
-
          call sweep_sregion_from_interface(sreg,sintersection(n+1),vtype)
-
-         print *,'refined region',n,' swept'
-
 ! transfer regional travel times to interfaces 
-
-      
          do i=1,sreg%nnode
-
             i1 = sreg%node(i)%i1 ; i2 = sreg%node(i)%i2 ; i3 = sreg%node(i)%i3
-
             if (i1 == 0) then
-
                sintersection(i2)%arrivaltime(i3) = sreg%arrivaltime(i)
                sintersection(i2)%time_gradient(1:3,i3) = sreg%time_gradient(1:3,i)
             else
-
                sgrid%arrivaltime(i1,i2,i3)= sreg%arrivaltime(i)
-
             endif
-
          end do
-
       endif
-
    end do
-
 endif
-
-
 ! sweep down
-
 if (.not.s%on_interface .or. (s%on_interface .and. s%botreg_id < n_regions)) then
-
    if (s%on_interface) then
       nstart = s%botreg_id + 1
    else
       nstart = s%region_id + 1
    endif
-
    do n=nstart,n_sregions
-
       sreg => sregion(n)
-
       if (sreg%nnode > 0) then
-
-         print *,'refracting at interface',n
          call refract_gradient(sintersection(n),sregion(sreg%id-1),vtype,-1)
-
-         print *,'starting sweep from interface',n,'into region',sreg%id
          call sweep_sregion_from_interface(sreg,sintersection(n),vtype)
-
-         print *,'refined region',n,' swept'
-
          do i=1,sreg%nnode
-
             i1 = sreg%node(i)%i1 ; i2 = sreg%node(i)%i2 ; i3 = sreg%node(i)%i3
-
             if (i1 == 0) then
-
-!               write(1,*) i,i1,i2,i3 
-
                sintersection(i2)%arrivaltime(i3) = sreg%arrivaltime(i)
                sintersection(i2)%time_gradient(1:3,i3) = sreg%time_gradient(1:3,i)
-
-
             else
-
-!               write(1,*) i,i1,i2,i3
-
                sgrid%arrivaltime(i1,i2,i3)= sreg%arrivaltime(i)
-
             endif
-
          end do
-         
       endif
-
    end do
-
 endif
-
 call system_clock(t2)
-print *,'refined grid for source',s%id,'took', real(t2-t1)/10000.,' sec'
-print *
-
 !-------------------------------------------------------------------------------------------------
 ! transfer the results to the region(s) in which the source resides on the main propagation grid
-
 ! first find shortest traveltime on refined region boundary
-
 t_short=huge_time
 
 rmin=pgrid%r(1)+pgrid%tolerance
@@ -3037,58 +2652,27 @@ if (sgrid%long(1) > longmin) &
      t_short = min(t_short,minval(sgrid%arrivaltime(1:sgrid%nr,1:sgrid%nlat,1)))
 if (sgrid%long(sgrid%nlong) < longmax) &
      t_short = min(t_short,minval(sgrid%arrivaltime(1:sgrid%nr,1:sgrid%nlat,sgrid%nlong)))
-
-print *,'shortest time on refined grid boundary is',t_short
-
-
-
 ! transfer the refined source region(s) to the main propagation grid source region(s)
 ! if the source lies on an interface initialize both regions above and below, else only source region
-
 do n=1,2
-
    if (s%init_path(n,vtype)%used) then
-
       if (s%on_interface) then   ! initialize the regions above and below the interface
-
          if (n==1) then ; sreg => sregion(s%topreg_id) ; reg => region(s%topreg_id) ; endif
          if (n==2) then ; sreg => sregion(s%botreg_id) ; reg => region(s%botreg_id) ; endif
-
       else                       ! only the one region in which the source lies
-
          sreg => sregion(s%region_id) ; reg => region(s%region_id)
-
       endif
-
       itopc => intersection(reg%id)      ! the top intersection of the normal source region
       ibotc => intersection(reg%id+1)    ! the bottom intersection of the normal source region
       allocate(reg%arrivaltime(reg%nnode),reg%time_gradient(3,reg%nnode),reg%node_status(reg%nnode))
       reg%node_status=-1
       reg%arrivaltime = huge_time
-
-
-      print *,'before transefr refined region'
-
       call transfer_refined_region(sreg,reg,t_short)
-
-      print *,'transferred times from fine grid to coarse for region',reg%id
-
-
    ! create a narrow band around the nodes transferred from the fine grid
-
       call create_narrow_band(reg,vtype)
-
-      print *,'narrow band created in region',reg%id,'alive/nb',count(reg%node_status == 0),&
-           count(reg%node_status == 1)
-
 ! do the fast marching sweep across the main grid region containing the source
-
       call propagate(reg,vtype)
-
-      print *,'propagation through region',reg%id,' finished'
-
 ! transfer regional travel times to interfaces 
-
       if (itopc%nnode > 0 .and. .not. associated(itopc%arrivaltime)) then
          allocate(itopc%arrivaltime(itopc%nnode))
          allocate(itopc%time_gradient(3,itopc%nnode))
@@ -3097,38 +2681,23 @@ do n=1,2
          allocate(ibotc%arrivaltime(ibotc%nnode))
          allocate(ibotc%time_gradient(3,ibotc%nnode))
       endif
-
       do i=1,reg%nnode
-
          i1 = reg%node(i)%i1 ; i2 = reg%node(i)%i2 ; i3 = reg%node(i)%i3
-
          if (i1 == 0) then
-
             intersection(i2)%arrivaltime(i3) = reg%arrivaltime(i)
             intersection(i2)%time_gradient(1:3,i3) = reg%time_gradient(1:3,i)
-
          endif
-
       end do
-      
   ! transfer time field to the array of saved time fields
-
       s%n_time_fields=s%n_time_fields+1
       allocate(s%time_field(s%n_time_fields)%arrivaltime(reg%nnode))
       s%time_field(s%n_time_fields)%arrivaltime=reg%arrivaltime
       allocate(s%time_field(s%n_time_fields)%time_gradient(3,reg%nnode))
       s%time_field(s%n_time_fields)%time_gradient=reg%time_gradient
-
-      print *,'results written to timefield',s%n_time_fields
-
   ! pointer to source region
-
       s%time_field(s%n_time_fields)%reg =>  reg 
-
       s%time_field(s%n_time_fields)%vtype =  vtype
-
       s%init_path(n,vtype)%tf_sequence(1) = s%n_time_fields
-
       if (s%on_interface) then
          if (reg%id == s%topreg_id) then
             s%time_field(s%n_time_fields)%istart => intersection(s%topint_id)
@@ -3141,18 +2710,11 @@ do n=1,2
          s%time_field(s%n_time_fields)%istart => ibotc
          s%time_field(s%n_time_fields)%inonstart =>  itopc
       endif
-
   ! register the first (source) time fields with the associated source
-
       if (n == 1) s%first_tf_up(vtype) = s%n_time_fields
       if (n == 2) s%first_tf_down(vtype) = s%n_time_fields
-
-
 ! deallocate  everything that is no longer required
-
       deallocate(reg%arrivaltime,reg%time_gradient,reg%node_status)
-
-
   ! if the source does not lie on an interface, the first timefields up and down are the same
   ! we do not need to do the direction down (loop index n = 2)
       if (.not.s%on_interface) then
@@ -3161,102 +2723,51 @@ do n=1,2
          s%first_tf_down(vtype) = s%n_time_fields
          exit
       endif
-
-
    endif
-
 end do
-
-! timefields 1(/2) describing the source region(s) on the main grid ha(s)(ve) been established
-print *,'timefields in main grid regions connected to the source established, vtype=',vtype
-
-
-
 !--------------------------------------------------------------------------------------------
 ! now construct the actual time field sequences on the main grid up (path 1) or down (path 2)
 ! through the regions overlapping with the refined source grid
-
-
 ! the upward path 1
-
 ! only if there are regions above the source region
-
 if (s%init_path(1,vtype)%used .and. s%init_path(1,vtype)%n_tf > 1) then 
-
    prev_tf = s%first_tf_up(vtype)
-
-   print *,'starting upward sweep in main grid regions overlapping source region'
-
    do n=2,s%init_path(1,vtype)%n_tf
-
-
 ! transfer the refined source region to the main propagation grid region
-
       if (s%on_interface) then
          reg => region(s%topreg_id-n+1)
       else
          reg =>  region(s%region_id-n+1)         ! the region in the main propagation grid
       endif
-
       itopc => reg%itop                       ! the top intersection of the region
       ibotc => reg%ibot                       ! the bottom intersection of the region
       allocate(reg%arrivaltime(reg%nnode),reg%time_gradient(3,reg%nnode),reg%node_status(reg%nnode))
       reg%node_status=-1
       reg%arrivaltime = huge_time
-
       call transfer_refined_region(sregion(reg%id),reg,t_short)
-
-      print *,'transferred times from fine grid to coarse for region',reg%id
-
-
  ! create narrow band around transferred nodes
-
       call create_narrow_band(reg,vtype)
-      print *,'narrow band created in region',reg%id,'alive/nb',count(reg%node_status == 0),&
-           count(reg%node_status == 1)
-
-
  ! add the intersection nodes to the narrow band
-
       if (.not. associated(ibotc%arrivaltime)) &
            stop 'requested starting interface does not have arrival times'
-
       allocate(ibotc%starttime(ibotc%nnode)) 
 ! start time will be compared to arrival time after propagation to find turning rays
-
-
 ! set start time, time gradient and node status narrow band in regional 
 ! nodes that belong to the starting interface
-
       call refract_gradient(ibotc,region(ibotc%iface_id),vtype,1)
-
       do i=1,ibotc%nnode
-
          j=ibotc%rabo_node_id(i)
          if (reg%node_status(j) /= 0) then     
-
     ! only for nodes that did not receive a value from the refined grid
-
             reg%arrivaltime(j)= ibotc%arrivaltime(i)
             reg%time_gradient(1:3,j)=ibotc%time_gradient(1:3,i)
             reg%node_status(j)=1
-
          endif
          ibotc%starttime(i)=reg%arrivaltime(j)
       end do
-
-!      print *,'region',reg%id,' starting times set'
-
-
 ! do the fast marching sweep across the main grid region 
-
       call propagate(reg,vtype)
-
-      print *,'propagation through region',reg%id,' finished'
-
-
 ! transfer regional travel times to interfaces 
-
       if (itopc%nnode > 0 .and. .not. associated(itopc%arrivaltime)) then
          allocate(itopc%arrivaltime(itopc%nnode))
          allocate(itopc%time_gradient(3,itopc%nnode))
@@ -3265,150 +2776,84 @@ if (s%init_path(1,vtype)%used .and. s%init_path(1,vtype)%n_tf > 1) then
          allocate(ibotc%arrivaltime(ibotc%nnode))
          allocate(ibotc%time_gradient(3,ibotc%nnode))
       endif
-
       do i=1,reg%nnode
-
          i1 = reg%node(i)%i1 ; i2 = reg%node(i)%i2 ; i3 = reg%node(i)%i3
-
          if (i1 == 0) then
-
             intersection(i2)%arrivaltime(i3) = reg%arrivaltime(i)
             intersection(i2)%time_gradient(1:3,i3) = reg%time_gradient(1:3,i)
-
          endif
-
       end do
-      
   ! transfer time field to the array of saved time fields
-
       s%n_time_fields=s%n_time_fields+1
       allocate(s%time_field(s%n_time_fields)%arrivaltime(reg%nnode))
       s%time_field(s%n_time_fields)%arrivaltime=reg%arrivaltime
       allocate(s%time_field(s%n_time_fields)%time_gradient(3,reg%nnode))
       s%time_field(s%n_time_fields)%time_gradient=reg%time_gradient
-
-      print *,'results written to timefield',s%n_time_fields
-
      ! attach info to the generated time field
-
       ! time field preceding the current one
       s%time_field(s%n_time_fields)%prev_tf = prev_tf
-
       ! identify the current time field as the child of the previous time field
       if (prev_tf <= s%n_tf_init) then
          s%time_field(prev_tf)%next_tf(1+(vtype-1)*4) = s%n_time_fields
       else
          s%time_field(prev_tf)%next_tf(1+(vtype-1)*4) = s%n_time_fields
       endif
-
       ! store the index of the time field in the sequence of timefields for this path
       s%init_path(1,vtype)%tf_sequence(n) = s%n_time_fields
-
       ! pointers to start and non-start interfaces
       s%time_field(s%n_time_fields)%istart => ibotc
       s%time_field(s%n_time_fields)%inonstart =>  itopc  
       s%time_field(s%n_time_fields)%reg =>  reg
-  
       s%time_field(s%n_time_fields)%vtype =  vtype
-
       prev_tf = s%n_time_fields
-
      ! check for turning rays
       if (count(ibotc%arrivaltime /= ibotc%starttime) > 0) then
-         print *,'turning rays were present on interface',ibotc%iface_id
          s%time_field(s%n_time_fields)%turning_rays_present=.true.
          allocate(s%time_field(s%n_time_fields)%received_turning_ray(ibotc%nnode)) 
          s%time_field(s%n_time_fields)%received_turning_ray = ibotc%arrivaltime /= ibotc%starttime
       endif
-
 ! deallocate  everything that is no longer required
-
       deallocate(reg%arrivaltime,reg%time_gradient,reg%node_status,ibotc%starttime)
-
    end do  ! end of loop over steps of upward path
-
-
 endif   ! upward path exist
-
-
-
 ! the downward path 2
-
 ! only if the region below the source region exists
-
 if (s%init_path(2,vtype)%used .and. s%init_path(2,vtype)%n_tf > 1) then
-
    prev_tf =s%first_tf_down(vtype)
-
-   print *,'starting downward sweep in main grid regions overlapping source region'
-
    do n=2,s%init_path(2,vtype)%n_tf
-
-      print *,'timefield',n,' of the downward sequence started'
-
-! transfer the refined source region to the main propagation grid region
-
       if (s%on_interface) then
          reg => region(s%botreg_id+n-1)
       else
          reg =>  region(s%region_id+n-1)         ! the region in the main propagation grid
       endif
-
       itopc => reg%itop                       ! the top intersection of the region
       ibotc => reg%ibot                       ! the bottom intersection of the region
       allocate(reg%arrivaltime(reg%nnode),reg%time_gradient(3,reg%nnode),reg%node_status(reg%nnode))
       reg%node_status=-1
       reg%arrivaltime = huge_time
-
       call transfer_refined_region(sregion(reg%id),reg,t_short)
-
-      print *,'transferred times from fine grid to coarse for region',reg%id
-
-
  ! create narrow band around transferred nodes
-
       call create_narrow_band(reg,vtype)
-      print *,'narrow band created in region',reg%id,'alive/nb',count(reg%node_status == 0),&
-           count(reg%node_status == 1)
-
-
  ! add the intersection nodes to the narrow band
-
       if (.not. associated(itopc%arrivaltime)) &
            stop 'requested starting interface does not have arrival times'
-
       allocate(itopc%starttime(itopc%nnode))
-
-
 ! set start time, time gradient and node status narrow band in regional 
 ! nodes that belong to the starting interface
-
       call refract_gradient(itopc,region(itopc%iface_id-1),vtype,-1)
-
       do i=1,itopc%nnode
-
          j=itopc%rbel_node_id(i)
          if (reg%node_status(j) /= 0) then     
-
        ! only for nodes that did not receive a value from the refined grid
-
             reg%arrivaltime(j)= itopc%arrivaltime(i)
             reg%time_gradient(1:3,j)=itopc%time_gradient(1:3,i)
             reg%node_status(j)=1
-
          endif
          itopc%starttime(i)=reg%arrivaltime(j)
       end do
-
-
 ! do the fast marching sweep across the main grid region 
-
       call propagate(reg,vtype)
-
-      print *,'propagation through region',reg%id,' finished'
-
 ! transfer regional travel times to interfaces 
-
       if (itopc%nnode > 0 .and. .not. associated(itopc%arrivaltime)) then
          allocate(itopc%arrivaltime(itopc%nnode))
          allocate(itopc%time_gradient(3,itopc%nnode))
@@ -3417,96 +2862,48 @@ if (s%init_path(2,vtype)%used .and. s%init_path(2,vtype)%n_tf > 1) then
          allocate(ibotc%arrivaltime(ibotc%nnode))
          allocate(ibotc%time_gradient(3,ibotc%nnode))
       endif
-
       do i=1,reg%nnode
-
          i1 = reg%node(i)%i1 ; i2 = reg%node(i)%i2 ; i3 = reg%node(i)%i3
-
          if (i1 == 0) then
-
             intersection(i2)%arrivaltime(i3) = reg%arrivaltime(i)
             intersection(i2)%time_gradient(1:3,i3) = reg%time_gradient(1:3,i)
-
          endif
-
       end do
-      
   ! transfer time field to the array of saved time fields
-
       s%n_time_fields=s%n_time_fields+1
       allocate(s%time_field(s%n_time_fields)%arrivaltime(reg%nnode))
       s%time_field(s%n_time_fields)%arrivaltime=reg%arrivaltime
       allocate(s%time_field(s%n_time_fields)%time_gradient(3,reg%nnode))
       s%time_field(s%n_time_fields)%time_gradient=reg%time_gradient
-
-      print *,'results written to timefield',s%n_time_fields
-
      ! attach info to the generated time field
-
       ! time field preceding the current one
       s%time_field(s%n_time_fields)%prev_tf = prev_tf
-
       ! identify the current time field as the child of the previous time field
       if (prev_tf <= s%n_tf_init) then
          s%time_field(prev_tf)%next_tf(4+(vtype-1)*4) = s%n_time_fields
-!         print *,'timefield',s%n_time_fields,'is ctype 4 of time field',prev_tf
       else
          s%time_field(prev_tf)%next_tf(2+(vtype-1)*4) = s%n_time_fields
-!         print *,'timefield',s%n_time_fields,'is ctype 2 of time field',prev_tf
       endif
-
       ! store the index of the time field in the sequence of timefields for this path
       s%init_path(2,vtype)%tf_sequence(n) = s%n_time_fields
-
       ! pointers to start and non-start interfaces
       s%time_field(s%n_time_fields)%istart => itopc
       s%time_field(s%n_time_fields)%inonstart =>  ibotc  
       s%time_field(s%n_time_fields)%reg =>  reg  
-
       s%time_field(s%n_time_fields)%vtype =  vtype
-
       prev_tf = s%n_time_fields
-
      ! check for turning rays
       if (count(itopc%arrivaltime /= itopc%starttime) > 0) then
-         print *,'turning rays were present on interface',itopc%iface_id
          s%time_field(s%n_time_fields)%turning_rays_present=.true.
          allocate(s%time_field(s%n_time_fields)%received_turning_ray(itopc%nnode)) 
          s%time_field(s%n_time_fields)%received_turning_ray = itopc%arrivaltime /= itopc%starttime
       endif
-
-
 ! deallocate  everything that is no longer required
-
       deallocate(reg%arrivaltime,reg%time_gradient,reg%node_status,itopc%starttime)
-
-!      print *,'timefield',n,' of the downward sequence finished'
-
    end do  ! end of loop over steps of downward path
-
 endif   ! downward path exist
-
 end do  ! vtypes
-
-! print *,'finished inside source_reg_init'
-
-do m=1,n_vtypes
-do n=1,2
-   if (s%init_path(n,m)%used) then
-      if (n==1) print '(a45,i3,a1,11i5)','timefields on upward init path for vtype',m,':', &
-           s%init_path(n,m)%tf_sequence(1:s%init_path(n,m)%n_tf)
-      if (n==2) print '(a45,i3,a1,11i5)','timefields on downward init path for vtype',m,':', &
-           s%init_path(n,m)%tf_sequence(1:s%init_path(n,m)%n_tf)
-   else
-      if (n==1) print *,'there was no upward initialization path for vtype',m 
-      if (n==2) print *,'there was no downward initialization path for vtype',m
-   endif
-end do
-end do
-
-
 ! deallocate all storage related to the refined source grid
-
 call clean_grid(sgrid)
 deallocate(sgrid)
 do n=1,n_sintersections
@@ -3518,14 +2915,9 @@ do n=1,n_sregions
 end do
 deallocate(sregion)
 
-! stop ' temp stop in initsource'
-
 return
-
 end subroutine initialize_source_regions
-
 !***************************************************************
-
 subroutine clean_grid(grid)
 
 use mod_3dfm
@@ -3616,7 +3008,6 @@ if (associated(reg%init_arrivaltime)) deallocate(reg%init_arrivaltime)
 if (associated(reg%init_time_gradient)) deallocate(reg%init_time_gradient)
 
 end subroutine clean_region
-
 
 !-----------------------------------------------------------------------------------------
 ! this logical function returns true if centernode has neighbours that are not alive
@@ -3710,80 +3101,51 @@ end subroutine clean_region
      ! if icell == 0 the cell is not cut be the top interface
     
          if(icell /= 0) then
- 
             isec => reg%itop
             do jj=1,isec%n_inodes(icell)
-
 !   m is the node number in the regional node list of node  jj in the list of inteface 
 !   nodes that are part of cut cell icell
                 m=isec%rbel_node_id(isec%inodes(jj,icell))
-
                if ( reg%node_status(m) < 0 ) then  
                   non_alive_neighbours = .true.
                   return
                endif
-
             end do
-
          end if
-
-
 ! then check the bottom intersection
-
         icell=grid%ccind_from_3dc(concell(n)%ir,concell(n)%ilat,concell(n)%ilong)%p(reg%ibot%iface_id)
          if (icell /= 0) then
-
             isec => reg%ibot
             do jj=1,isec%n_inodes(icell)
-
                m=isec%rabo_node_id(isec%inodes(jj,icell))
-!                  print *,'its regional node number is ',m,node_is_counted(m),centernode
-
                if ( reg%node_status(m) < 0 ) then  
                   non_alive_neighbours = .true.
                   return
                endif
-
             end do
-
          endif
-
       endif
-
-
 ! then find the regular grid nodes of connected cell n
-
-
       do i=0,1
          ii=concell(n)%ir+i
          do j=0,1
             jj=concell(n)%ilat+j
             do k=0,1
                kk=concell(n)%ilong+k
-
                ! reduced connectivity for regular nodes if cell is completely regular
-
                if ((i1 == 0 .or. (i1 /= 0 .and. abs(i1-ii)+abs(i2-jj)+abs(i3-kk) == 1))) then 
-                  
                  if (grid%node_region(ii,jj,kk) == reg%id) then  
                ! node has to belong to the current region
-
                      m=grid%rnode_id(ii,jj,kk)
-
                      if ( reg%node_status(m) < 0 ) then  
                         non_alive_neighbours = .true.
                         return
                      endif
-
                   endif
-
                endif
-
             end do
          end do
       end do
-
-
    end do  ! loop over connected cells
 
    return
@@ -4019,38 +3381,22 @@ end subroutine clean_region
 
 
        do n=1,isec%nnode
-
           grad_perp=dot_product(isec%normal(1:3,n),isec%time_gradient(1:3,n))
           grad_par=isec%time_gradient(1:3,n)-grad_perp*isec%normal(1:3,n)
-
           det=1.d0/(vel(n)**2) - sum(grad_par**2)
-
           if (det > 0.0_dp) then
-             
              ! the refracted ray exists
-
              grad_perp_reflected=sqrt(det)
              isec%time_gradient(1:3,n)=grad_par + &
                   sign(grad_perp_reflected,direction)*isec%normal(1:3,n)
-
           else
-
              ! no converted reflection possible
-
              isec%arrivaltime(n)=huge_time
              isec%time_gradient(1:3,n)=0.0_dp
              n_no_ref= n_no_ref+1
-
           endif
-
        end do
-
-       if (n_no_ref > 0) print *,n_no_ref,' intersection points could not reflect the converted wave'
-    
     endif
-
-
-
 
     return
 
@@ -4082,33 +3428,21 @@ end subroutine clean_region
     direction_real = dble(direction) 
 
     do n=1,isec%nnode
-
        grad_perp=dot_product(isec%normal(1:3,n),isec%time_gradient(1:3,n))
        grad_par=isec%time_gradient(1:3,n)-grad_perp*isec%normal(1:3,n)
-
        det=1.d0/(vel(n)**2) - sum(grad_par**2)
-
        if (det > 0.0_dp) then
-             
           ! the refracted ray exists
-
           grad_perp_refracted=sqrt(det)
           isec%time_gradient(1:3,n)=grad_par + &
                sign(grad_perp_refracted,direction_real)*isec%normal(1:3,n)
-
        else
-
           ! total reflection
-
           isec%arrivaltime(n)=huge_time
           isec%time_gradient(1:3,n)=0.0_dp
           n_tot_ref= n_tot_ref+1
-
        endif
-
     end do
-
-    if (n_tot_ref > 0) print *,'total reflection occurred at ',n_tot_ref,' intersection nodes'
 
     return
 
@@ -4252,11 +3586,6 @@ end subroutine clean_region
      allocate (work_d7(2,nnpnmax),work_r1(nnpnmax,2),work_r2(nnpnmax))
      allocate (work_i1(nnpnmax),work_i2(2,nnpnmax),work_i3(nnpnmax))
 
-
-
-
-
-!     print *,'before triangulation'
 !--------------------------------------------------------------------------------------
 
 
@@ -4431,85 +3760,41 @@ nlongmin = sgrid%index_long0
 
 tloop : do n=1,sreg%nnode
 
-!   pdiag = (reg%id == 3) .and. (n == 359764)
-
-!   if (pdiag) print *,'trying to transfer xnode'
-
    if (sreg%arrivaltime(n) <= t_short) then  ! transfer only times less than the first boundary hit
-
-!      if (pdiag) print *,'passed t-short'
-
    i1=sreg%node(n)%i1  ; i2=sreg%node(n)%i2   ; i3= sreg%node(n)%i3
-   
-
    if (i1 /= 0) then           ! the regional node is a regular node
-
-!      if (pdiag) print *,'xnode is regular'
-
       if (mod(i1-1,refinement_factor) == 0 .and. mod(i2-1,refinement_factor) == 0 &
            .and. mod(i3-1,refinement_factor) == 0) then
-
          j1 = nrmin    +   (i1-1)/refinement_factor
          j2 = nlatmin  +   (i2-1)/refinement_factor
          j3 = nlongmin +   (i3-1)/refinement_factor
-
-!         print *,n,'regular node',j1,j2,j3
-!         print *,pgrid%rnode_id(j1,j2,j3), reg%nnode
-
          reg%arrivaltime(pgrid%rnode_id(j1,j2,j3)) = sreg%arrivaltime(n)
          reg%time_gradient(1:3,pgrid%rnode_id(j1,j2,j3)) = sreg%time_gradient(1:3,n)
          reg%node_status(pgrid%rnode_id(j1,j2,j3)) = 0
-
-!         print *,n,'regular node'
-
       endif
-
    else   ! the regional node is an intersection node
-
-!      if (pdiag) print *,'irregular sreg node',i1,i2,i3,sintersection(i2)%intype(i3)
-
 ! choose the corresponding intersection on the main grid
-
       if (i2 == sreg%itop%id) then
          isec => reg%itop
       else
          isec => reg%ibot
       endif
-
 ! coarse grid index coordinates
-
       xir      = (sintersection(i2)%r(i3)-pgrid%r0)/pgrid%dr0
       xilat    = (sintersection(i2)%lat(i3)-pgrid%lat0)/pgrid%dlat0
       xilong   = (sintersection(i2)%long(i3)-pgrid%long0)/pgrid%dlong0
-
-!      if (pdiag) print '(a10,3f15.6)','gi cs',xir,xilat,xilong
-
 ! distance from nearest coarse grid coordinate plane
-
       dxir    = abs(xir - anint(xir))
       dxilat  = abs(xilat - anint(xilat))
       dxilong = abs(xilong - anint(xilong))
-
-!      if (pdiag) print '(a10,3f15.6)','npdist',dxir,dxilat,dxilong
-
-
 ! coordinates of the coarse grid cell containing the refined region node
-
       j1= min(int(xir)+1,pgrid%nr-1)
       j2= min(int(xilat)+1,pgrid%nlat-1)
       j3= min(int(xilong)+1,pgrid%nlong-1)
-
-!      if (pdiag) print *,'cgcell',j1,j2,j3
-
-
 ! convert type of inode on refined grid to type of inode on coarse grid
-
       if (sintersection(i2)%intype(i3) /= 0) then
-
          intype = sintersection(i2)%intype(i3)
-
       else
-
          if (dxir<interface_tolerance.and.dxilat<interface_tolerance.and.&
               dxilong<interface_tolerance) then
             intype = 0
@@ -4524,207 +3809,127 @@ tloop : do n=1,sreg%nnode
          endif
 
       endif
-
 ! test whether the refined regional node lies on r,lat or long connection
-
       select case (intype)
-
          case(0)
-
             ! if all coordinates coincide exactly with the coarse grid lines, there is 
             ! a corresponding coarse grid intersection node
-
-            
             if (dxir < interface_tolerance .and. dxilat < interface_tolerance &
                  .and. dxilong < interface_tolerance ) then 
-
-!               if (pdiag) print *,n,'type 0'
-
                ! get the cut cell index of the coarse grid cell
                if (associated(pgrid%ccind_from_3dc(j1,j2,j3)%p)) then
-
                   icell = pgrid%ccind_from_3dc(j1,j2,j3)%p(isec%iface_id)
-
        ! test the nodes of this cut cell for coincidence with the refined inode under consideration
                   do m=1,isec%n_inodes(icell)
-                  
                      k=isec%inodes(m,icell)  ! the intersection node #
-
                      if (i2 == sreg%itop%id) then 
                         kk=isec%rbel_node_id(k)
                      else
                         kk=isec%rabo_node_id(k)
                      endif
-
-
                      if (isec%intype(k) == 0) then  
               ! only consider nodes of the same type as the refined inode
-
                         dist =sqrt((sintersection(i2)%r(i3)-isec%r(k))**2 &
                              + (isec%r(k)*(sintersection(i2)%lat(i3)-isec%lat(k)))**2 &
                              + (isec%r(k)*isec%coslat(k)*(sintersection(i2)%long(i3) &
                              -isec%long(k)))**2)
-
                         if (dist < pgrid%tolerance) then
                            reg%arrivaltime(kk) = sreg%arrivaltime(n)
                            reg%time_gradient(1:3,kk) = sreg%time_gradient(1:3,n)
                            reg%node_status(kk) = 0
                            cycle tloop
                         endif
-
                      endif
-
                   end do
-
                endif
-
             endif
-
-
          case(1)    ! inode lies on an r-connection
-
             ! if other coordinates coincide exactly with the coarse grid lines, there is 
             ! a corresponding coarse grid intersection node
-
-            
             if (dxilat < interface_tolerance .and. dxilong < interface_tolerance) then 
-
-!               if (pdiag) print *,n,'type 1'
-
                ! get the cut cell index of the coarse grid cell
                if (associated(pgrid%ccind_from_3dc(j1,j2,j3)%p)) then
-
                   icell = pgrid%ccind_from_3dc(j1,j2,j3)%p(isec%iface_id)
-
        ! test the nodes of this cut cell for coincidence with the refined inode under consideration
                   do m=1,isec%n_inodes(icell)
-                  
                      k=isec%inodes(m,icell)  ! the intersection node #
-
                      if (i2 == sreg%itop%id) then 
                         kk=isec%rbel_node_id(k)
                      else
                         kk=isec%rabo_node_id(k)
                      endif
-
-
                      if (isec%intype(k) == 1) then  
                 ! only consider nodes of the same type as the refined inode
-
                         dist =sqrt((sintersection(i2)%r(i3)-isec%r(k))**2 &
                              +(isec%r(k)*(sintersection(i2)%lat(i3)-isec%lat(k)))**2 &
                              + (isec%r(k)*isec%coslat(k)*(sintersection(i2)%long(i3) &
                              -isec%long(k)))**2)
-
-
                         if (dist < pgrid%tolerance) then
                            reg%arrivaltime(kk) = sreg%arrivaltime(n)
                            reg%time_gradient(1:3,kk) = sreg%time_gradient(1:3,n)
                            reg%node_status(kk) = 0
                            cycle tloop
                         endif
-
                      endif
-
                   end do
-
                endif
-
             endif
-
-
          case(2) ! inode lies on a lat-connection
-
             if (dxir < interface_tolerance .and. dxilong < interface_tolerance) then
-
-!               if (pdiag) print *,n,'type 2'
                if (associated(pgrid%ccind_from_3dc(j1,j2,j3)%p)) then
-
                   icell = pgrid%ccind_from_3dc(j1,j2,j3)%p(isec%iface_id)
-
                   do m=1,isec%n_inodes(icell)
-                  
                      k=isec%inodes(m,icell)
-
                      if (i2 == sreg%itop%id) then 
                         kk=isec%rbel_node_id(k)
                      else
                         kk=isec%rabo_node_id(k)
                      endif
-
                      if (isec%intype(k) == 2) then
-
                         dist =sqrt((sintersection(i2)%r(i3)-isec%r(k))**2 &
                              +(isec%r(k)*(sintersection(i2)%lat(i3)-isec%lat(k)))**2 &
                              + (isec%r(k)*isec%coslat(k)*(sintersection(i2)%long(i3) &
                              -isec%long(k)))**2)
-
                         if (dist < pgrid%tolerance) then
                            reg%arrivaltime(kk) = sreg%arrivaltime(n)
                            reg%time_gradient(1:3,kk) = sreg%time_gradient(1:3,n)
                            reg%node_status(kk) = 0
                            cycle tloop
                         endif
-
                      endif
-
                   end do
-
                endif
-
             endif
-
-
          case(3)    ! inode lies on a long-connection
-
             if (dxilat < interface_tolerance .and. dxir < interface_tolerance) then
-
 !               if (pdiag) print *,n,'type 3'
-
                if (associated(pgrid%ccind_from_3dc(j1,j2,j3)%p)) then
-
                   icell = pgrid%ccind_from_3dc(j1,j2,j3)%p(isec%iface_id)
-
                   do m=1,isec%n_inodes(icell)
-                  
                      k=isec%inodes(m,icell)
-
-
                      if (i2 == sreg%itop%id) then 
                         kk=isec%rbel_node_id(k)
                      else
                         kk=isec%rabo_node_id(k)
                      endif
-
                      if (isec%intype(k) == 3) then
-
                         dist =sqrt((sintersection(i2)%r(i3)-isec%r(k))**2 &
                              +(isec%r(k)*(sintersection(i2)%lat(i3)-isec%lat(k)))**2 &
                              + (isec%r(k)*isec%coslat(k)*(sintersection(i2)%long(i3) &
                              -isec%long(k)))**2)
-
                         if (dist < pgrid%tolerance) then
                            reg%arrivaltime(kk) = sreg%arrivaltime(n)
                            reg%time_gradient(1:3,kk) = sreg%time_gradient(1:3,n)
                            reg%node_status(kk) = 0
                            cycle tloop
                         endif
-
                      endif
-
                   end do
-
                endif
-
             endif
-
       end select
-
-
    endif   ! refined node is an inode
-
    endif  ! arrivaltime < t_short
-
 end do tloop
 
 end subroutine transfer_refined_region
@@ -4738,68 +3943,40 @@ subroutine write_valid_rays(n,m)
   integer                              :: i,j,k,m,n,zero
 
   zero=0
-
   if (receiver(n)%ray(m)%is_multiray) then
-
      do k=1,receiver(n)%ray(m)%n_subrays
-
         ray => receiver(n)%ray(m)%subray(k)
-
         if (ray%valid) then
-
            write(31,'(5i6)') n,ray%source_id,m,k,ray%nsections
-
            do i=1,ray%nsections
-
               write(31,'(2i6,2l5)') ray%section(i)%npoints,ray%section(i)%reg%id, &
                    ray%section(i)%diffracted,ray%section(i)%headwave
-
               do j=ray%section(i)%npoints,1,-1
                  write(31,'(3f17.8)') ray%section(i)%point(1:3,j)
               end do
-
            end do
-
         else
-
            write(31,'(5i6)') n,ray%source_id,m,k,zero
-
         endif
-
      end do
-
   else
-
      k = 0
-
      ray => receiver(n)%ray(m)
-
      if (ray%valid) then
-
         write(31,'(5i6)') n,ray%source_id,m,zero,ray%nsections
-
         do i=1,ray%nsections
-
            write(31,'(2i6,2l5)') ray%section(i)%npoints,ray%section(i)%reg%id, &
                 ray%section(i)%diffracted,ray%section(i)%headwave
-
            do j=ray%section(i)%npoints,1,-1
               write(31,'(3f17.8)') ray%section(i)%point(1:3,j)
            end do
-
         end do
-
      else
-
         write(31,'(5i6)') n,ray%source_id,m,zero,zero
-
      endif
-
   endif
 
-
 end subroutine write_valid_rays
-
 
 !*****************************************************************************************************
 !*****************************************************************************************************
@@ -4811,31 +3988,21 @@ subroutine clean_ray(n,m)
   type(Tray),pointer                   :: ray
 
   if (receiver(n)%ray(m)%is_multiray) then
-
      do k=1,receiver(n)%ray(m)%n_subrays
-
         ray => receiver(n)%ray(m)%subray(k)
-
         if (associated(ray%pdev)) deallocate(ray%pdev)
         if (associated(ray%pdev_indx)) deallocate(ray%pdev_indx)
-
         do i=1,ray%nsections
            if (associated(ray%section(i)%point)) deallocate(ray%section(i)%point)           
         end do
-
      end do
-
   else
-
      ray => receiver(n)%ray(m)
-
      if (associated(ray%pdev)) deallocate(ray%pdev)
      if (associated(ray%pdev_indx)) deallocate(ray%pdev_indx)
-
      do i=1,ray%nsections
         if (associated(ray%section(i)%point)) deallocate(ray%section(i)%point)
      end do
-
   endif
 
 end subroutine clean_ray
@@ -4849,56 +4016,34 @@ subroutine write_frechet_derivatives(n,m)
   type(Tray),pointer                   :: ray
 
   zero=0
-
   if (receiver(n)%ray(m)%is_multiray) then
-
      do k=1,receiver(n)%ray(m)%n_subrays
-
         ray => receiver(n)%ray(m)%subray(k)
-
         if (ray%valid) then
-
            write(21,'(5i6)') n,ray%source_id,m,k,ray%n_pdev
-
            do i=1,ray%n_pdev
               write(21,'(i10,f17.8)') ray%pdev_indx(i),ray%pdev(i)
            end do
-
         else
-
            write(21,'(5i6)') n,ray%source_id,m,k,zero
-
         endif
-
      end do
-
   else
-
      k = 0
-
      ray => receiver(n)%ray(m)
-
      if (ray%valid) then
-
         write(21,'(5i6)') n,ray%source_id,m,k,ray%n_pdev
-
         do i=1,ray%n_pdev
            write(21,'(i10,e17.8)') ray%pdev_indx(i),ray%pdev(i)
         end do
-
      else
-
         write(21,'(5i6)') n,ray%source_id,m,k,zero
-
      endif
-
   endif
 
 end subroutine write_frechet_derivatives
 !
 !**************************************************************
-!
-
 subroutine load_source_timefields(s)
 
   use mod_3dfm
@@ -4911,12 +4056,10 @@ subroutine load_source_timefields(s)
   open(nfile,form='unformatted')
 
    do n=1,s%n_time_fields
-
       allocate(s%time_field(n)%arrivaltime(s%time_field(n)%reg%nnode))
       allocate(s%time_field(n)%time_gradient(3,s%time_field(n)%reg%nnode))
       read(nfile) s%time_field(n)%arrivaltime
       read(nfile) s%time_field(n)%time_gradient
-
    end do
 
    close(nfile)
@@ -4956,64 +4099,43 @@ end subroutine clean_source_timefields
 
 
   if (associated(pgrid%arrivaltime)) deallocate(pgrid%arrivaltime)
-
   allocate(pgrid%arrivaltime(pgrid%nr,pgrid%nlat,pgrid%nlong))
   pgrid%arrivaltime=huge_time
-
   do n=path%first_tf_to_save, path%n_tf
-
      tf=> src%time_field(path%tf_sequence(n))
      reg => tf%reg
-
      do i=1, reg%nnode
-
         i1=reg%node(i)%i1 ; i2=reg%node(i)%i2 ; i3=reg%node(i)%i3 
-
         if (i1 /= 0) then
            pgrid%arrivaltime(i1,i2,i3)=min(tf%arrivaltime(i),pgrid%arrivaltime(i1,i2,i3))
         endif
-        
         if (i1==0) then
-
            r=reg%r(i)-pgrid%r0 ; lat=reg%lat(i)-pgrid%lat0 ; long=reg%long(i)-pgrid%long0
-
            ir=nint(r/pgrid%dr0)+1
            ilat=nint(lat/pgrid%dlat0)+1
            ilong=nint(long/pgrid%dlong0)+1
-
            dxr=abs(r-pgrid%dr0*(ir-1))
            dxlat=reg%r(i)*abs(lat-pgrid%dlat0*(ilat-1))          
            dxlong=reg%r(i)*cos(reg%lat(i))*abs(long-pgrid%dlong0*(ilong-1)) 
-
            ntype=intersection(i2)%intype(i3)
            select case(ntype)
               case(0)
                  pgrid%arrivaltime(ir,ilat,ilong)= &
                       min(tf%arrivaltime(i),pgrid%arrivaltime(ir,ilat,ilong))
-
               case(1)
                  if (dxr<=pgrid%tolerance) pgrid%arrivaltime(ir,ilat,ilong)= &
                       min(tf%arrivaltime(i),pgrid%arrivaltime(ir,ilat,ilong))
-
               case(2)
                  if (dxlat<=pgrid%tolerance) pgrid%arrivaltime(ir,ilat,ilong)= &
                       min(tf%arrivaltime(i),pgrid%arrivaltime(ir,ilat,ilong))
-
               case(3)
                  if (dxlong<=pgrid%tolerance) pgrid%arrivaltime(ir,ilat,ilong)= &
                       min(tf%arrivaltime(i),pgrid%arrivaltime(ir,ilat,ilong))
-
            end select
-
         endif
-
      end do
-
   end do
-
   where (pgrid%arrivaltime>1.e10) pgrid%arrivaltime=-1.0
-
-
   write(19,*) src%id,path%id,path%first_tf_to_save
   do i3=1,pgrid%nlong
      do i2=1,pgrid%nlat
@@ -5023,9 +4145,7 @@ end subroutine clean_source_timefields
      end do
   end do
 
-
   deallocate(pgrid%arrivaltime)
-
 
 end subroutine write_arrivaltime_grid
 !
