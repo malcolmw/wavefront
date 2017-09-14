@@ -1,106 +1,122 @@
 import glob
-import numpy.distutils
-import numpy.distutils.core
 import numpy.distutils.misc_util
-import numpy.f2py.f2py2e as f2py
 import os
-import setuptools
 import shutil
 import subprocess
+import setuptools
+
 gtext = numpy.distutils.misc_util.green_text
 ytext = numpy.distutils.misc_util.yellow_text
 rtext = numpy.distutils.misc_util.red_text
-Extension = numpy.distutils.core.Extension
 
-fsrcs = ["libsun", "libtau", "ellip", "sphdist", "nn_subsf"]
-f90srcs = ["mod_3dfm", "3dfmlib", "propagate", "rays",
-           "frechet", "matchref", "teleseismic",
-           "3dfm_main", "stack", "svdlib", "visual"]
-srcs = f90srcs + fsrcs
+def configure():
+# Initialize the setup kwargs
+    kwargs = {"name": "wavefront",
+            "version": "0.0a0",
+            "author": "Malcolm White",
+            "author_email": "malcolcw@usc.edu",
+            "maintainer": "Malcolm White",
+            "maintainer_email": "malcolcw@usc.edu",
+            "url": "http://malcolmw.github.io/wavefront",
+            "description": "Wavefront propagation tracking",
+            "download_url": "https://github.com/malcolmw/wavefront.git",
+            "platforms": ["linux", "osx"],
+            "requires": ["sqlite3"],
+            "packages": ["wavefront"],
+            "package_dir": {"wavefront": "wavefront/compile"},
+            "py_modules": ["wavefront.fmm3d",
+                           "wavefront.fmm3dlib"],
+            "package_data": {"wavefront": ["_fmm3dlib.*.so"]}}
+    return(kwargs)
 
-root_dir = os.path.split(os.path.abspath(__file__))[0]
-build_dir = "%s/build-tmp" % root_dir
-src_dir = "%s/src" % root_dir
-pkg_dir = "%s/pkg" % root_dir
-
-if os.path.isdir(build_dir):
+def compile_fmm3d():
+    sources = ["typedefn.f90",
+               "globals.f90",
+               "legacy/interface_definitions.f90",
+               "fmm3dlib.f90",
+               "legacy/3dfmlib.f90",
+               "legacy/ellip.f",
+               "legacy/frechet.f90",
+               "legacy/libsun.f",
+               "legacy/libtau.f",
+               "legacy/matchref.f90",
+               "legacy/nn_subsf.f",
+               "legacy/propagate.f90",
+               "legacy/rays.f90",
+               "legacy/sphdist.f",
+               "legacy/stack.f90",
+               "legacy/svdlib.f90",
+               "legacy/teleseismic.f90",
+               "initialize.f90",
+               "util.f90"]
+    root_dir = os.path.split(os.path.abspath(__file__))[0]
+    comp_dir = "%s/wavefront/compile" % root_dir
+    fortran_src_dir = "%s/wavefront/fsrc" % root_dir
+    py_src_dir = "%s/wavefront/pysrc" % root_dir
+    if os.path.isdir(comp_dir):
+        try:
+            print(gtext("Removing existing compile directory: %s" % comp_dir))
+            shutil.rmtree(comp_dir)
+        except Exception as err:
+            print(rtext("Failed to remove compile directory"))
+            print(rtext(err))
+            exit()
     try:
-        print(gtext("Removing existing build directory: %s" % build_dir))
-        shutil.rmtree(build_dir)
+        print(gtext("Creating compile directory: %s" % comp_dir))
+        os.mkdir(comp_dir)
     except Exception as err:
-        print(rtext("Failed to remove build directory"))
-        print(ytext(err))
+        print(rtext("Failed to created compile directory"))
+        print(rtext(err))
+        exit()
+    try:
+        print(gtext("Changing directory to: %s" % comp_dir))
+        os.chdir(comp_dir)
+    except Exception as err:
+        print(rtext("Failed to change directory"))
+        print(rtext(err))
+        exit()
+    for src in sources:
+        print(gtext("Compiling Fortran source %s" % src))
+        src = "%s/%s" % (fortran_src_dir, src)
+        try:
+            cmd = ["gfortran", "-c", src]
+            print("\t%s" % gtext(" ".join(cmd)))
+            subprocess.run(cmd)
+        except Exception as err:
+            print(rtext("Failed to compile Fortran source %s.%s" % src))
+            print(rtext(err))
+            exit()
+    try:
+        print(gtext("Copying package contents to: %s" % comp_dir))
+        for f in glob.glob("%s/*" % py_src_dir):
+            shutil.copyfile(f, "%s/%s" % (comp_dir, os.path.split(f)[1]))
+    except Exception as err:
+        print(rtext("Failed to copy file: %s" % f))
+        print(rtext(err))
         exit()
 
-for path in glob.glob("pkg/_fm3d*"):
     try:
-        print(gtext("Removing stale build file: %s" % path))
-        if os.path.isfile(path):
-            os.remove(path)
-        else:
-            shutil.rmtree(path)
-    except Exception as err:
-        print(rtext("Failed to remove stale build file"))
-        print(ytext(err))
-        exit()
-
-try:
-    print(gtext("Creating build directory: %s" % build_dir))
-    os.mkdir(build_dir)
-except Exception as err:
-    print(rtext("Failed to created build directory"))
-    print(ytext(err))
-    exit()
-try:
-    print(gtext("Changing directory to: %s" % build_dir))
-    os.chdir(build_dir)
-except Exception as err:
-    print(rtext("Failed to change directory"))
-    print(ytext(err))
-    exit()
-for src, ext in list(zip(["%s/%s" % (src_dir, src) for src in f90srcs],
-                         ["f90"]*len(f90srcs))) +\
-                list(zip(["%s/%s" % (src_dir, src) for src in fsrcs],
-                         ["f"]*len(fsrcs))):
-    print(gtext("Compiling Fortran source %s.%s" % (src, ext)))
-    try:
-        cmd = ["gfortran", "-c", "%s.%s" % (src, ext)]
+        print(gtext("Creating Fortran extension module: _fmm3dlib"))
+        cmd = ["f2py", "-c", "-m", "_fmm3dlib", "-I%s" % comp_dir]
+        cmd += ["%s/f90wrap_fmm3dlib.f90" % fortran_src_dir]
+        cmd += ["%s/f90wrap_initialize.f90" % fortran_src_dir]
+        for src in sources:
+            src = os.path.splitext(os.path.split(src)[1])[0]
+            cmd += ["%s/%s.o" % (comp_dir, src)]
         print("\t%s" % gtext(" ".join(cmd)))
         subprocess.run(cmd)
     except Exception as err:
-        print(rtext("Failed to compile Fortran source %s.%s" % (src, ext)))
-        print(ytext(err))
+        print(rtext(err))
+
+    try:
+        print(gtext("Changing directory to: %s" % root_dir))
+        os.chdir(root_dir)
+    except Exception as err:
+        print(rtext("Failed to change directory"))
+        print(rtext(err))
         exit()
 
-try:
-    print(gtext("Changing directory to: %s" % pkg_dir))
-    os.chdir(pkg_dir)
-except Exception as err:
-    print(rtext("Failed to change directory"))
-    print(ytext(err))
-    exit()
-
-try:
-    print(gtext("Creating Fortran extension module: _fm3d"))
-    cmd = ["f2py", "-c", "-m", "_fm3d", "-I%s" % build_dir]
-    cmd += glob.glob("%s/f90wrap_*.f90" % src_dir)
-    cmd += ["%s/%s.o" % (build_dir, src) for src in srcs]
-    print("\t%s" % gtext(" ".join(cmd)))
-    subprocess.run(cmd)
-except Exception as err:
-    print(rtext(err))
-
-try:
-    print(gtext("Changing directory to: %s" % root_dir))
-    os.chdir(root_dir)
-except Exception as err:
-    print(rtext("Failed to change directory"))
-    print(ytext(err))
-    exit()
-
-setuptools.setup(name="wavefront",
-                 version=0.0,
-                 packages=["wavefront"],
-                 package_dir={"wavefront": pkg_dir},
-                 package_data={"wavefront": glob.glob("%s/_fm3d*.so" % pkg_dir)},
-                 py_modules=["wavefront.fm3d"])
+if __name__ == "__main__":
+    compile_fmm3d()
+    kwargs = configure()
+    setuptools.setup(**kwargs)
