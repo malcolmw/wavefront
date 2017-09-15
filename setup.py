@@ -21,7 +21,7 @@ def configure():
             "description": "Wavefront propagation tracking",
             "download_url": "https://github.com/malcolmw/wavefront.git",
             "platforms": ["linux", "osx"],
-            "requires": ["sqlite3"],
+            "requires": ["numpy", "f90wrap"],
             "packages": ["wavefront"],
             "package_dir": {"wavefront": "wavefront/compile"},
             "py_modules": ["wavefront.fmm3d",
@@ -117,6 +117,12 @@ def compile_fmm3d():
         exit()
 
 if __name__ == "__main__":
+    try:
+        import f90wrap
+    except ImportError:
+        print(rtext("Dependency f90wrap not found."))
+        print("Install module using 'pip install f90wrap' before continuing.")
+        exit(1)
     compile_fmm3d()
     kwargs = configure()
     setuptools.setup(**kwargs)
