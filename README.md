@@ -1,5 +1,7 @@
 # wavefront
-Python API for fm3d wavefront propagation code. - (in development)
+Python API for fm3d wavefront propagation code. - (inactive)
+
+*This project is no longer active. Please check out [PyKonal](https://github.com/malcolmw/pykonal) instead.*
 
 The goal of this development project is to create a convenient API to interface with the fast marching method code of de Kool et al. (2006).
 The original code (v0.7) can be found here: http://rses.anu.edu.au/seismology/soft/fmmcode/
